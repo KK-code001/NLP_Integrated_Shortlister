@@ -1,0 +1,26 @@
+# ── Core ML ──────────────────────────────────────────────────
+scikit-learn
+joblib
+shap
+numpy
+pandas
+
+# ── PDF / Document parsing ────────────────────────────────────
+docling                   # Primary layout-aware parser (Docling)
+PyMuPDF                   # Fallback 1: two-column aware PDF
+pdfplumber                # Fallback 2: plain PDF text
+python-docx               # DOCX parsing
+
+# ── OCR (optional — only needed for scanned / image PDFs) ─────
+# pdf2image
+# pytesseract
+
+# ── LLM backend ───────────────────────────────────────────────
+ollama                    # Ollama Python client (model runs locally)
+
+# ── NLP ───────────────────────────────────────────────────────
+sentence-transformers     # Semantic similarity (SBERT)
+rapidfuzz                 # Fuzzy skill matching
+
+# ── Utilities ─────────────────────────────────────────────────
+Pillow                    # Image handling (for image resumes)
