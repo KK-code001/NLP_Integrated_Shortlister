@@ -27,6 +27,7 @@ from app.parser.layout import ResumeDocument, TextBlock
 SECTION_ALIASES: dict[str, list[str]] = {
     "experience": [
         "experience",
+        # "EXPERIENCE",
         "professional experience",
         "work experience",
         "employment",
