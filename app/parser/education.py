@@ -100,22 +100,63 @@ def _extract_degree_name(raw: str) -> str:
     return raw[:60].strip()
 
 
+def deduplicate_education_records(education_list: list[dict]) -> list[dict]:
+    """
+    Deduplicate and clean education records.
+    Filter out records that represent teaching assistant roles or course context
+    and merge duplicates by (normalized_degree, institution).
+    """
+    if not education_list:
+        return []
+
+    seen = {}
+    cleaned_records = []
+
+    for item in education_list:
+        degree = (item.get("degree") or "").strip()
+        field_name = (item.get("field") or "").strip()
+        institution = (item.get("institution") or "").strip()
+
+        combined = f"{degree} {field_name}".lower()
+        if "teaching assistant" in combined or "assisted students" in combined or "evaluating" in combined:
+            continue
+
+        degree_norm, _level = normalize_degree(degree)
+        inst_norm = re.sub(r"[^a-z0-9]", "", institution.lower())
+        key = (degree_norm.lower(), inst_norm)
+
+        if key in seen:
+            existing = seen[key]
+            if not existing.get("gpa") and item.get("gpa"):
+                existing["gpa"] = item["gpa"]
+            if not existing.get("start_date") and item.get("start_date"):
+                existing["start_date"] = item["start_date"]
+            if not existing.get("end_date") and item.get("end_date"):
+                existing["end_date"] = item["end_date"]
+        else:
+            seen[key] = dict(item)
+            cleaned_records.append(seen[key])
+
+    return cleaned_records
+
+
 def best_education_record(education_list: list[dict]) -> tuple[str, str]:
     """
     Given a list of education records, return the (degree_name, education_level)
     of the highest qualification found.
-
-    This preserves compatibility with the existing feature_builder which expects
-    'education_degree' and 'education_level' string fields.
     """
-    if not education_list:
+    cleaned = deduplicate_education_records(education_list)
+    if not cleaned:
+        cleaned = education_list
+
+    if not cleaned:
         return "Unknown", "Unknown"
 
     best_degree = "Unknown"
     best_level  = "Unknown"
     best_score  = -1
 
-    for edu in education_list:
+    for edu in cleaned:
         raw_deg = edu.get("degree", "")
         degree_name, level = normalize_degree(raw_deg)
         score = _LEVEL_ORDER.get(level, 0)

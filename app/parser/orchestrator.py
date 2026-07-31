@@ -30,7 +30,7 @@ from app.parser.llm import (
     extract_basic_info_llm,
 )
 from app.parser.experience import calculate_total_experience, separate_internships
-from app.parser.education import best_education_record
+from app.parser.education import best_education_record, deduplicate_education_records
 from app.parser.skills import merge_skills
 from app.services.skill_matcher import extract_skills_exact
 from app.utils.validation import validate_and_clean_jobs
@@ -92,7 +92,7 @@ def extract_from_document(resume_doc: ResumeDocument) -> dict:
     if "error" in edu_result:
         warnings.append(f"Education extraction error: {edu_result['error']}")
 
-    education_list = edu_result.get("education", [])
+    education_list = deduplicate_education_records(edu_result.get("education", []))
 
     # ------------------------------------------------------------------
     # Step 4: Skills — LLM + text-based merge

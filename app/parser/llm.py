@@ -90,17 +90,31 @@ def extract_contact_info(header_text: str) -> dict:
             if m:
                 github = m.group(0)
 
-    # Name heuristic: first non-empty line with 2–4 words, no digits, no @
-    for line in lines[:8]:
-        cleaned = re.sub(r"[^a-zA-Z\s]", "", line).strip()
+    # Name heuristic: scan lines for 2–4 capitalized words, excluding locations/contacts
+    _LOCATION_WORDS = {"jaipur", "rajasthan", "india", "delhi", "mumbai", "bangalore", "bengaluru", "profile", "summary", "experience"}
+    for line in lines[:15]:
+        line_clean = line.strip()
+        if "@" in line_clean or re.search(r"\d", line_clean) or "/" in line_clean:
+            continue
+        cleaned = re.sub(r"[^a-zA-Z\s]", "", line_clean).strip()
         words = cleaned.split()
-        if (
-            2 <= len(words) <= 4
-            and "@" not in line
-            and not re.search(r"\d", line)
-        ):
-            name = line.strip()
-            break
+        if 2 <= len(words) <= 4:
+            if not any(w.lower() in _LOCATION_WORDS for w in words):
+                name = cleaned.title()
+                break
+
+    # Fallback 1: Infer name from LinkedIn URL (e.g., linkedin.com/in/naman-goyal-123 -> Naman Goyal)
+    if not name:
+        m = re.search(r"(?:linkedin\.com/in/|in/)([a-zA-Z]+)-([a-zA-Z]+)", header_text, re.IGNORECASE)
+        if m:
+            name = f"{m.group(1).capitalize()} {m.group(2).capitalize()}"
+
+    # Fallback 2: Infer name from email handle (e.g. gnaman180@gmail.com -> Naman)
+    if not name and email:
+        handle = email.split("@")[0]
+        handle_clean = re.sub(r"\d+", "", handle)
+        if len(handle_clean) >= 3:
+            name = handle_clean.strip("._-").title()
 
     return {
         "name":     name,

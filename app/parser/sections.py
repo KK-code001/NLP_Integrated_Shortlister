@@ -265,6 +265,27 @@ def detect_sections(doc: ResumeDocument) -> dict[str, list[TextBlock]]:
             # Heading-like block that doesn't match any known alias → treat as content
         sections.setdefault(current_section, []).append(block)
 
+    # Post-process: check header/summary for orphan job blocks (e.g. "Teaching Assistant", date ranges)
+    _JOB_TITLE_KEYWORDS = {"assistant", "intern", "developer", "engineer", "manager", "analyst", "lead", "architect", "consultant", "specialist"}
+    _DATE_RANGE_RE = re.compile(r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4})\s*[\-–—\sto]+\s*(?:present|current|now|\d{4})", re.IGNORECASE)
+
+    orphan_job_blocks = []
+    for sec in ("header", "summary"):
+        sec_blocks = sections.get(sec, [])
+        for b in sec_blocks:
+            b_lower = b.text.lower()
+            if _DATE_RANGE_RE.search(b_lower) or any(re.search(rf"\b{kw}\b", b_lower) for kw in _JOB_TITLE_KEYWORDS):
+                if not any(token in b_lower for token in ["@gmail", "@yahoo", "linkedin.com", "github.com", "aspiring"]):
+                    orphan_job_blocks.append(b)
+
+    if orphan_job_blocks:
+        if "experience" not in sections:
+            sections["experience"] = []
+        exp_texts = {b.text for b in sections["experience"]}
+        for ob in orphan_job_blocks:
+            if ob.text not in exp_texts:
+                sections["experience"].insert(0, ob)
+
     return sections
 
 

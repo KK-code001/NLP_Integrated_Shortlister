@@ -73,17 +73,36 @@ def combine_and_normalize_skills(text_extracted_skills: list, llm_extracted_skil
     combined = _apply_implied_skills(combined)
     return sorted(combined)
 
+def _normalize_skill_token(skill: str) -> str:
+    s = skill.lower().strip()
+    _PLURAL_MAP = {
+        "llms": "llm",
+        "rest api": "rest apis",
+        "ai agents": "ai agent",
+        "web apis": "web api",
+        "apis": "api",
+    }
+    return _PLURAL_MAP.get(s, s)
+
 def get_matched_skills(resume_skills: list, jd_skills: list) -> list:
-    return sorted(set(resume_skills) & set(jd_skills))
+    res_map = {_normalize_skill_token(s): s for s in resume_skills}
+    jd_norm = {_normalize_skill_token(s) for s in jd_skills}
+    matched_norm = set(res_map.keys()) & jd_norm
+    return sorted({res_map[m] for m in matched_norm})
 
 def get_missing_skills(resume_skills: list, jd_skills: list) -> list:
-    return sorted(set(jd_skills) - set(resume_skills))
+    res_norm = {_normalize_skill_token(s) for s in resume_skills}
+    jd_map = {_normalize_skill_token(s): s for s in jd_skills}
+    missing_norm = set(jd_map.keys()) - res_norm
+    return sorted({jd_map[m] for m in missing_norm})
 
 def skill_match_score(resume_skills: list, jd_skills: list) -> float:
     if not jd_skills:
         return 0.0
-    matched = len(set(resume_skills) & set(jd_skills))
-    return round(matched / len(jd_skills), 2)
+    res_norm = {_normalize_skill_token(s) for s in resume_skills}
+    jd_norm = {_normalize_skill_token(s) for s in jd_skills}
+    matched = len(res_norm & jd_norm)
+    return round(matched / len(jd_norm), 2)
 
 def identify_domain(skill_list: list) -> str:
     scores = {domain: len(set(skill_list) & set(skills))
