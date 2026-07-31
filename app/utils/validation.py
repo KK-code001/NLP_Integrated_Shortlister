@@ -50,7 +50,7 @@ def validate_job(job: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
 
     if _looks_like_year(cleaned_company) or not cleaned_company:
         warnings.append(
-            f"Rejected job: company field '{company}' does not contain a valid company name."
+            f"Rejected job: company field '{company}' contains a year instead of a valid company name."
         )
         return {}, warnings
     

@@ -19,8 +19,11 @@ Every path returns a ResumeDocument with a blocks list and a raw_text string.
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -43,6 +46,7 @@ class ResumeDocument:
     raw_text: str = ""            # Full concatenated text (compat. with feature_builder)
     source_path: str = ""
     parser_used: str = "unknown"
+    parser_warnings: list[str] = field(default_factory=list)  # diagnostic log of parser chain
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +61,7 @@ def _parse_with_docling(file_path: str) -> Optional[ResumeDocument]:
     """
     try:
         from docling.document_converter import DocumentConverter
+        logger.info("[Parser] Trying Docling for: %s", file_path)
 
         converter = DocumentConverter()
         result = converter.convert(file_path)
@@ -150,6 +155,7 @@ def _parse_with_docling(file_path: str) -> Optional[ResumeDocument]:
             return None
 
         raw_text = "\n".join(b.text for b in blocks if b.text)
+        logger.info("[Parser] ✓ Docling succeeded — %d blocks extracted", len(blocks))
         return ResumeDocument(
             blocks=blocks,
             raw_text=raw_text,
@@ -158,9 +164,11 @@ def _parse_with_docling(file_path: str) -> Optional[ResumeDocument]:
         )
 
     except ImportError:
-        return None          # Docling not installed
-    except Exception:
-        return None          # Any other failure — try next parser
+        logger.info("[Parser] ✗ Docling not installed — skipping")
+        return None
+    except Exception as exc:
+        logger.warning("[Parser] ✗ Docling failed: %s — trying next parser", exc)
+        return None
 
 
 def _parse_markdown_to_document(
@@ -200,6 +208,7 @@ def _parse_with_pymupdf(file_path: str) -> Optional[ResumeDocument]:
     """
     try:
         import fitz  # PyMuPDF
+        logger.info("[Parser] Trying PyMuPDF for: %s", file_path)
 
         doc_fitz = fitz.open(file_path)
         blocks: list[TextBlock] = []
@@ -233,9 +242,11 @@ def _parse_with_pymupdf(file_path: str) -> Optional[ResumeDocument]:
                         ))
 
         if not blocks:
+            logger.info("[Parser] ✗ PyMuPDF found no text blocks (scanned PDF?)")
             return None
 
         raw_text = "\n".join(b.text for b in blocks if b.text)
+        logger.info("[Parser] ✓ PyMuPDF succeeded — %d blocks extracted", len(blocks))
         return ResumeDocument(
             blocks=blocks,
             raw_text=raw_text,
@@ -244,8 +255,10 @@ def _parse_with_pymupdf(file_path: str) -> Optional[ResumeDocument]:
         )
 
     except ImportError:
+        logger.info("[Parser] ✗ PyMuPDF (fitz) not installed — skipping")
         return None
-    except Exception:
+    except Exception as exc:
+        logger.warning("[Parser] ✗ PyMuPDF failed: %s — trying next parser", exc)
         return None
 
 
@@ -256,6 +269,7 @@ def _parse_with_pymupdf(file_path: str) -> Optional[ResumeDocument]:
 def _parse_with_pdfplumber(file_path: str) -> Optional[ResumeDocument]:
     try:
         import pdfplumber
+        logger.info("[Parser] Trying pdfplumber for: %s", file_path)
 
         parts: list[str] = []
         with pdfplumber.open(file_path) as pdf:
@@ -265,6 +279,7 @@ def _parse_with_pdfplumber(file_path: str) -> Optional[ResumeDocument]:
                     parts.append(t)
 
         if not parts:
+            logger.info("[Parser] ✗ pdfplumber found no text")
             return None
 
         raw_text = "\n".join(parts)
@@ -273,6 +288,7 @@ def _parse_with_pdfplumber(file_path: str) -> Optional[ResumeDocument]:
             for line in raw_text.splitlines()
             if line.strip()
         ]
+        logger.info("[Parser] ✓ pdfplumber succeeded — %d lines extracted", len(blocks))
         return ResumeDocument(
             blocks=blocks,
             raw_text=raw_text,
@@ -280,7 +296,8 @@ def _parse_with_pdfplumber(file_path: str) -> Optional[ResumeDocument]:
             parser_used="pdfplumber",
         )
 
-    except Exception:
+    except Exception as exc:
+        logger.warning("[Parser] ✗ pdfplumber failed: %s", exc)
         return None
 
 
@@ -341,6 +358,7 @@ def _parse_docx(file_path: str) -> Optional[ResumeDocument]:
 
 def _parse_with_ocr(file_path: str) -> Optional[ResumeDocument]:
     try:
+        logger.info("[Parser] Trying OCR (pytesseract) for: %s", file_path)
         ext = os.path.splitext(file_path)[1].lower()
         pages = []
 
@@ -355,6 +373,7 @@ def _parse_with_ocr(file_path: str) -> Optional[ResumeDocument]:
         all_text = "\n".join(pytesseract.image_to_string(p) for p in pages)
 
         if not all_text.strip():
+            logger.info("[Parser] ✗ OCR produced no text")
             return None
 
         blocks = [
@@ -362,6 +381,7 @@ def _parse_with_ocr(file_path: str) -> Optional[ResumeDocument]:
             for line in all_text.splitlines()
             if line.strip()
         ]
+        logger.info("[Parser] ✓ OCR succeeded — %d lines extracted", len(blocks))
         return ResumeDocument(
             blocks=blocks,
             raw_text=all_text,
@@ -369,7 +389,11 @@ def _parse_with_ocr(file_path: str) -> Optional[ResumeDocument]:
             parser_used="ocr",
         )
 
-    except Exception:
+    except ImportError as exc:
+        logger.warning("[Parser] ✗ OCR dependencies not installed (%s) — install pdf2image and pytesseract", exc)
+        return None
+    except Exception as exc:
+        logger.warning("[Parser] ✗ OCR failed: %s", exc)
         return None
 
 
@@ -388,12 +412,15 @@ def parse_resume_document(file_path: str) -> ResumeDocument:
       TXT  → plain read
     """
     ext = os.path.splitext(file_path)[1].lower()
+    logger.info("[Parser] Parsing file: %s (format: %s)", file_path, ext)
+    warnings: list[str] = []
 
     if ext in (".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"):
-        return (
-            _parse_with_ocr(file_path)
-            or _empty_document(file_path, "ocr_failed")
-        )
+        doc = _parse_with_ocr(file_path)
+        if doc:
+            return doc
+        warnings.append("OCR failed for image file")
+        return _empty_document(file_path, "ocr_failed", warnings)
 
     if ext == ".txt":
         try:
@@ -403,35 +430,51 @@ def parse_resume_document(file_path: str) -> ResumeDocument:
                 for line in raw.splitlines()
                 if line.strip()
             ]
+            logger.info("[Parser] ✓ TXT read — %d lines", len(blocks))
             return ResumeDocument(
                 blocks=blocks, raw_text=raw,
                 source_path=file_path, parser_used="txt",
             )
-        except Exception:
-            return _empty_document(file_path, "txt_failed")
+        except Exception as exc:
+            warnings.append(f"TXT read failed: {exc}")
+            return _empty_document(file_path, "txt_failed", warnings)
 
     if ext == ".docx":
-        return (
-            _parse_with_docling(file_path)
-            or _parse_docx(file_path)
-            or _empty_document(file_path, "docx_failed")
-        )
+        for parser_fn, name in [(_parse_docx, "python-docx"), (_parse_with_docling, "Docling")]:
+            doc = parser_fn(file_path)
+            if doc:
+                return doc
+            warnings.append(f"{name} failed for DOCX")
+        return _empty_document(file_path, "docx_failed", warnings)
 
     if ext == ".pdf":
-        return (
-            _parse_with_docling(file_path)
-            or _parse_with_pymupdf(file_path)
-            or _parse_with_pdfplumber(file_path)
-            or _parse_with_ocr(file_path)
-            or _empty_document(file_path, "pdf_failed")
-        )
+        for parser_fn, name in [
+            (_parse_with_pymupdf, "PyMuPDF"),
+            (_parse_with_pdfplumber, "pdfplumber"),
+            (_parse_with_docling, "Docling"),
+            (_parse_with_ocr, "OCR"),
+        ]:
+            doc = parser_fn(file_path)
+            if doc:
+                doc.parser_warnings = warnings  # attach chain history
+                return doc
+            warnings.append(f"{name} failed")
+
+        logger.error("[Parser] ✗ ALL parsers failed for PDF: %s", file_path)
+        return _empty_document(file_path, "pdf_failed", warnings)
 
     # Unsupported extension — try Docling anyway
-    return (
-        _parse_with_docling(file_path)
-        or _empty_document(file_path, f"unsupported_{ext}")
+    doc = _parse_with_docling(file_path)
+    if doc:
+        return doc
+    warnings.append(f"Unsupported extension '{ext}' and Docling failed")
+    return _empty_document(file_path, f"unsupported_{ext}", warnings)
+
+
+def _empty_document(file_path: str, reason: str, warnings: list[str] | None = None) -> ResumeDocument:
+    logger.warning("[Parser] Returning empty document for '%s' — reason: %s", file_path, reason)
+    return ResumeDocument(
+        source_path=file_path,
+        parser_used=reason,
+        parser_warnings=warnings or [f"All parsers failed: {reason}"],
     )
-
-
-def _empty_document(file_path: str, reason: str) -> ResumeDocument:
-    return ResumeDocument(source_path=file_path, parser_used=reason)
