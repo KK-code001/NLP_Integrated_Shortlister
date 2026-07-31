@@ -15,9 +15,9 @@ from pathlib import Path
 # ── Make sure the project root is on sys.path ─────────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# ── File paths — EDIT THESE ───────────────────────────────────────────────────
-resume_path = input("Enter the path to the resume file: ")     # ← change this
-jd_path     = input("Enter the path to the job description file: ")  # ← change this
+# ── File paths ────────────────────────────────────────────────────────────────
+resume_path = input("Enter the path to the resume file: ").strip().strip('"').strip("'")
+jd_path     = input("Enter the path to the job description file: ").strip().strip('"').strip("'")
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -191,6 +191,35 @@ def _print_report(report: dict):
             else:
                 print(f"  - {r}")
 
+    # Qualitative LLM Insights
+    llm_insights = report.get("llm_insights")
+    if llm_insights:
+        print("\n" + "-" * W)
+        src_label = "Ollama LLM" if llm_insights.get("source") == "ollama_llm" else "Rule-based Fallback"
+        print(f"  QUALITATIVE HIRING INSIGHTS ({src_label})")
+        print("-" * W)
+
+        if llm_insights.get("fit_summary"):
+            print(f"  Executive Fit Summary:\n    {llm_insights['fit_summary']}")
+
+        if llm_insights.get("strengths"):
+            print("\n  Key Candidate Strengths:")
+            for s in llm_insights["strengths"]:
+                print(f"    + {s}")
+
+        if llm_insights.get("gaps_and_risks"):
+            print("\n  Gaps & Risk Factors:")
+            for g in llm_insights["gaps_and_risks"]:
+                if isinstance(g, dict):
+                    sev = g.get("severity", "MEDIUM")
+                    mit = f" (Mitigation: {g['mitigation']})" if g.get("mitigation") else ""
+                    print(f"    ! [{sev}] {g.get('gap')}{mit}")
+                else:
+                    print(f"    ! {g}")
+
+        if llm_insights.get("career_trajectory"):
+            print(f"\n  Career Trajectory Assessment:\n    {llm_insights['career_trajectory']}")
+
     # Value Addition Insights
     warnings = report.get("parsing_metadata", {}).get("warnings", [])
     insights = []
@@ -204,7 +233,7 @@ def _print_report(report: dict):
     
     if insights:
         print("\n" + "-" * W)
-        print("  VALUE-ADD INSIGHTS")
+        print("  VALUE-ADD INSIGHTS & PARSER METADATA")
         print("-" * W)
         for v in insights:
             print(f"  - {v}")

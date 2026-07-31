@@ -51,7 +51,11 @@ def validate_job(job: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     # If company looks like a bare 4-digit year, reject outright
     if _looks_like_year(cleaned_company):
         warnings.append(
+<<<<<<< HEAD
             f"Rejected job: company field '{company}' looks like a year or does not contain a valid company name."
+=======
+            f"Rejected job: company field '{company}' contains a year instead of a valid company name."
+>>>>>>> 5e3c81e71f02af9a7b0079f7930b2897de4273c9
         )
         return {}, warnings
 

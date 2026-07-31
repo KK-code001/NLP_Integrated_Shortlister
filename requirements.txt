@@ -11,9 +11,9 @@ PyMuPDF                   # Fallback 1: two-column aware PDF
 pdfplumber                # Fallback 2: plain PDF text
 python-docx               # DOCX parsing
 
-# ── OCR (optional — only needed for scanned / image PDFs) ─────
-# pdf2image
-# pytesseract
+# ── OCR (for scanned / image PDFs) ───────────────────
+pdf2image
+pytesseract
 
 # ── LLM backend ───────────────────────────────────────────────
 ollama                    # Ollama Python client (model runs locally)

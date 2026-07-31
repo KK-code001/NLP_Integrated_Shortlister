@@ -1,6 +1,7 @@
 import json
 import ollama
 from app.config import OLLAMA_MODEL
+from app.services.llm_insights import generate_llm_insights
 
 def suggest_learning_resources(missing_skills: list, candidate_domain: str = "", max_suggestions: int = 5) -> list:
     """
@@ -61,16 +62,35 @@ def suggest_learning_resources(missing_skills: list, candidate_domain: str = "",
 def assemble_final_report(feature_data: dict, ml_eval: dict) -> dict:
     """
     Assembles final report by combining extracted feature data, ML evaluations,
-    and dynamic learning resources.
+    dynamic learning resources, and qualitative LLM hiring insights.
     """
     missing_skills = feature_data.get("missing_skills", [])
     candidate_domain = feature_data.get("resume_domain", "")
     recommendations = suggest_learning_resources(missing_skills, candidate_domain)
 
+    # Generate qualitative LLM insights
+    insights = generate_llm_insights(
+        candidate_name=feature_data.get("candidate_name", "Unknown Candidate"),
+        prediction=ml_eval.get("prediction", "unknown"),
+        confidence=ml_eval.get("confidence", 0.0),
+        matched_skills=feature_data.get("matched_skills", []),
+        missing_skills=missing_skills,
+        resume_experience=feature_data.get("resume_experience"),
+        jd_experience=feature_data.get("jd_experience"),
+        resume_domain=candidate_domain,
+        jd_domain=feature_data.get("jd_domain", ""),
+        education_degree=feature_data.get("education_degree", "Unknown"),
+        education_level=feature_data.get("education_level", "Unknown"),
+        is_overqualified=feature_data.get("is_overqualified", False),
+        semantic_similarity=feature_data.get("features", {}).get("semantic_similarity_score", 0.0),
+        certifications=feature_data.get("certifications", []),
+    )
+
     report = {}
     report.update(feature_data)
     report.update(ml_eval)
     report["dynamic_recommendations"] = recommendations
+    report["llm_insights"] = insights
     return report
 
 

@@ -12,6 +12,8 @@ None of those modules are modified.
 """
 from __future__ import annotations
 
+import logging
+
 from app.parser.layout import parse_resume_document
 from app.parser.orchestrator import extract_from_document
 from app.parser.education import best_education_record
@@ -20,6 +22,8 @@ from app.services.llm_extractor import extract_structured_data_llm
 from app.services.feature_builder import build_feature_vector
 from app.services.ml_classifier import evaluate_candidate_ml
 from app.services.report_generator import assemble_final_report
+
+logger = logging.getLogger(__name__)
 
 
 def _to_legacy_format(resume_schema: dict) -> dict:
@@ -80,7 +84,22 @@ def screen_candidate(
     """
     if is_file:
         # ── New layout-aware parsing path ──────────────────────────────
-        resume_doc    = parse_resume_document(resume_file_or_text)
+        resume_doc = parse_resume_document(resume_file_or_text)
+
+        # ── Early error: document is empty (all parsers failed) ────────
+        if not resume_doc.raw_text.strip():
+            logger.error("[Pipeline] Document parsing produced no text: %s", resume_file_or_text)
+            chain_info = ", ".join(resume_doc.parser_warnings) if resume_doc.parser_warnings else resume_doc.parser_used
+            return {
+                "error": (
+                    f"Could not extract any text from '{resume_file_or_text}'. "
+                    f"Parser chain: {chain_info}. "
+                    "This usually means the PDF is scanned/image-only and OCR "
+                    "dependencies (pdf2image, pytesseract) are not installed, "
+                    "or the file is corrupt/password-protected."
+                ),
+            }
+
         resume_schema = extract_from_document(resume_doc)
 
         # Use the raw document text for semantic similarity computation
@@ -110,12 +129,18 @@ def screen_candidate(
     # Step 2: RandomForest Prediction & SHAP Explanations (UNTOUCHED)
     ml_eval = evaluate_candidate_ml(feature_data)
 
-    # Step 3: Assemble Final Report (UNTOUCHED)
+    # Step 3: Assemble Final Report (includes LLM insights now)
     final_report = assemble_final_report(feature_data, ml_eval)
 
     # Attach parsing metadata for observability (additive — no existing keys changed)
     if resume_schema is not None:
-        final_report["parsing_metadata"] = resume_schema.get("parsing_metadata", {})
+        meta = resume_schema.get("parsing_metadata", {})
+        # Include parser chain warnings from layout parser
+        if hasattr(resume_doc, "parser_warnings") and resume_doc.parser_warnings:
+            existing_warnings = meta.get("warnings", [])
+            meta["warnings"] = resume_doc.parser_warnings + existing_warnings
+
+        final_report["parsing_metadata"] = meta
         final_report["parsed_resume"] = {
             "name":      resume_schema.get("name"),
             "email":     resume_schema.get("email"),

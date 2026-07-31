@@ -124,7 +124,14 @@ def compute_semantic_similarity(resume_text: str, jd_text: str) -> float:
     try:
         if _sbert_model is None:
             from sentence_transformers import SentenceTransformer
-            _sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
+            import os
+            os.environ["TRANSFORMERS_OFFLINE"] = "0"
+            try:
+                # Try loading from local cache first (instant, 0 network calls)
+                _sbert_model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+            except Exception:
+                # If not cached locally, try online load
+                _sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
         
         embeddings = _sbert_model.encode([resume_text, jd_text])
         score = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]

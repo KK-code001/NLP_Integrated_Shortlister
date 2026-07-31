@@ -67,9 +67,22 @@ def parse_date_flexible(s: str) -> Optional[datetime]:
 
     s_clean = s.strip()
     
+    # Check YYYY-MM / MM-YYYY / YYYY/MM / MM/YYYY before range splitting
+    m = re.match(r"^(\d{4})[\-–—/](\d{1,2})$", s_clean)
+    if m:
+        month_val = int(m.group(2))
+        if 1 <= month_val <= 12:
+            return datetime(int(m.group(1)), month_val, 1)
+
+    m = re.match(r"^(\d{1,2})[\-–—/](\d{4})$", s_clean)
+    if m:
+        month_val = int(m.group(1))
+        if 1 <= month_val <= 12:
+            return datetime(int(m.group(2)), month_val, 1)
+
     # If the input contains a range separator (e.g. "Jan 2026 - Present", "2018 - 2019"),
     # split it and only parse the first part.
-    for sep in ("-", "–", "—", " to "):
+    for sep in (" to ", "–", "—", " - ", "-"):
         if sep in s_clean:
             parts = s_clean.split(sep)
             if parts and parts[0].strip():
