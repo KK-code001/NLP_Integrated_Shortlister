@@ -48,20 +48,21 @@ def validate_job(job: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     # Strip common designation words if they leak into company
     cleaned_company = re.sub(r'^(?:cloud engineer|software engineer|developer|engineer|professor|assistant professor)\s*,?\s*', '', cleaned_company, flags=re.IGNORECASE).strip()
 
-    if _looks_like_year(cleaned_company) or not cleaned_company:
+    # If company looks like a bare 4-digit year, reject outright
+    if _looks_like_year(cleaned_company):
         warnings.append(
-            f"Rejected job: company field '{company}' does not contain a valid company name."
+            f"Rejected job: company field '{company}' looks like a year or does not contain a valid company name."
         )
         return {}, warnings
-    
+
+    # If company is empty (e.g. sidebar PDF layout couldn't be resolved), keep the record
+    # with a placeholder so experience and designation info is not lost
+    if not cleaned_company:
+        cleaned_company = "Company Not Identified"
+
     company = cleaned_company
 
-    # Reject: missing company name
-    if not company:
-        warnings.append("Rejected job: company name is missing.")
-        return {}, warnings
-
-    # Reject: missing designation
+    # Reject: missing designation — this is the truly unrecoverable field
     if not designation:
         warnings.append(
             f"Rejected job at '{company}': designation is empty."

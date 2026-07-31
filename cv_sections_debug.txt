@@ -1,0 +1,63 @@
+--- SECTION: header ---
+Mayank Kundalwal
+Curriculum Vitae
+Research Summary
+My research focuses on federated learning and representation learning for privacy-sensitive and heterogeneous environments. I develop robust and interpretable models for medical imaging and distributed systems. My work includes publications in IEEE Transactions and WACV, along with contributions to defense-funded radar signal processing projects.
+--- SECTION: education ---
+2019-2025 PhD, Computer Science & Engineering, Indian Institute of Technology, Jodhpur ,
+Towards Robust Privacy-preserving Federated Learning under Heterogeneous Environments for Medical Imaging Applications.
+2016-2018
+M.Tech, Computer Science & Engineering, NIT Patna ,
+Privacy-Preservation Framework for Cloud-Based Healthcare Systems
+CGPA: 8.24.
+2012-2016 B.Tech, Computer Science & Engineering, Poornima University,
+CGPA: 7.38.
+Research Interests
+Federated Learning, Computer Vision, Representation Learning, Medical Image Analysis
+--- SECTION: experience ---
+Assistant Professor , Manipal University Jaipur .
+Teaching undergraduate courses, conducting lectures and tutorials, mentoring students, and designing assessments. Focus on building strong conceptual understanding through interactive and board-oriented teaching approaches.
+2018-2019
+Cloud Engineer , Cloudminister Technologies Pvt. Ltd., Jaipur, India .
+Worked on cloud infrastructure and distributed systems, including server management, virtualization, and deployment. Gained experience in maintaining scalable and reliable cloud-based services and supporting system operations.
+Jan
+2026-Present
+2023-Present Department of CSE Indian Institute of Technology Jodhpur H (+91) 9261444448 B kundalwal.1@iitj.ac.in
+˝ linkedin Linkedin
+My Webpage
+graduation-cap Google Scholar
+--- SECTION: skills ---
+Programming Languages:
+Python (advanced), C/C++, Java
+Deep Learning Frameworks:
+PyTorch, TensorFlow, Keras
+Domain Expertise:
+Federated Learning, Computer Vision, Representation Learning
+--- SECTION: projects ---
+Confidential Defense Project (Indian Army) , Researcher .
+Developing long-range moving target detection algorithms using pulse-doppler radar. The project aims to enhance object identification accuracy at distances of approximately 20 km under challenging environmental conditions. Responsibilities include radar signal processing, Doppler-based motion analysis, and algorithm prototyping for detection and tracking.
+(Certain details are classified and cannot be disclosed publicly.)
+--- SECTION: publications ---
+- 2025 Mayank Kumar Kundalwal and Deepak Mishra. Flame: Federated learning with masked autoencoders and mean-prototypes embedding for sparsely labeled medical images. IEEE Transactions on Emerging Topics in Computational Intelligence . IEEE, 2025.
+- 2025 Mayank Kumar Kundalwal and Deepak Mishra. Ar2fl: Anomaly-resistant robust framework for federated learning. IEEE Transactions on Artificial Intelligence . IEEE, 2025.
+- 2019 Mayank Kumar Kundalwal, Kakali Chatterjee, and Ashish Singh. An improved privacy preservation technique in health-cloud. ICT Express , volume 5, pages 167-172. Elsevier, 2019.
+- 2026 Mayank Kumar Kundalwal, and Deepak Mishra, Federated Model Synchronization for Diagnostic Redefinition through a Novel Selective Parameter Unlearning, In 2026 IEEE/CVF Winter Conference on Applications of Computer Vision (WACV), IEEE, 2026 .
+- 2024 Mayank Kumar Kundalwal, Anurag Saraswat, Ishan Mishra, and Deepak Mishra. Client contribution normalization for enhanced federated learning. In 2024 IEEE 21st India Council International Conference (INDICON) , pages 1-6. IEEE, 2024.
+- 2022 Mayank Kumar Kundalwal, Anurag Saraswat, Ishan Mishra, and Deepak Mishra. Bafl: Federated learning with base ablation for cost effective communication. In 2022 26th International Conference on Pattern Recognition (ICPR) , pages 1922-1928. IEEE, 2022.
+- 2018 Mayank Kumar Kundalwal, Ashish Singh, and Kakali Chatterjee. A privacy framework in cloud computing for healthcare data. In 2018 International conference on advances in computing, communication control and networking (ICACCCN) , pages 58-63. IEEE, 2018.
+- 2025 Mayank Kumar Kundalwal, and Deepak Mishra, Context-Aware Hierarchical Swarm Learning for Medical Image Applications, In ACM Transactions on Multimedia Computing, Communications, and Applications (TOMM) (Under Review).
+- 2026 Mayank Kumar Kundalwal, and Deepak Mishra, Selective Federated Unlearning through Anchor Editing in Embedding Space, In IEEE Internet of Things Journal (Under Review).
+--- SECTION: awards ---
+- 2026 DEI Travel Grant Recipient - IEEE/CVF (WACV 2026).
+- 2025 Poster Presentation: 'Graduate Forum' at IndoML 2025 , BITS Pilani - Hyderabad Campus
+- 2023-Present Cyber Volunteer Squad Member - Ministry of Home Affairs, Government of India. Recognized at the G20 Conference on Crime and Security in the Age of NFTs, AI, and the Metaverse (2023).
+- 2023-2025 Indian Army (Defense R&D) Research Funding - Radar-based Moving Target Detection Project.
+- 2019-2023 Ministry of Education (MoE) Doctoral Fellowship for PhD Research.
+- 2016-2018 MHRD Fellowship
+Reviewer for leading journals ( IEEE TAI, TETCI, IoT Journal, TDSC ( WACV, ICPR, IJCAI, ECAI ).
+--- SECTION: references ---
+Dr. Deepak Mishra
+Assistant Professor, Dept. of CSE Indian Institute of Technology, Jodhpur B dmishra@iitj.ac.in
+- for M.Tech Studies. ) and top conferences
+Dr. Suman Kundu
+Assistant Professor, Dept. of CSE Indian Institute of Technology, Jodhpur B suman@iitj.ac.in

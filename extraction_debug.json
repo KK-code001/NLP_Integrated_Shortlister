@@ -1,0 +1,200 @@
+{
+  "features": {
+    "skill_match_score": 0.86,
+    "matched_skill_count": 12,
+    "missing_skill_count": 2,
+    "experience_match_score": 0.3,
+    "experience_ratio": 0.3,
+    "resume_experience_mentioned": 1,
+    "jd_experience_mentioned": 1,
+    "unstated_experience_for_senior_role": 0,
+    "semantic_similarity_score": 0.2868,
+    "domain_match": 1
+  },
+  "candidate_name": "Naman Goyal",
+  "resume_skills": [
+    "artificial intelligence",
+    "data analysis",
+    "data science",
+    "deep learning",
+    "excel",
+    "express",
+    "git",
+    "github",
+    "javascript",
+    "leadership",
+    "llm",
+    "machine learning",
+    "mongodb",
+    "nodejs",
+    "numpy",
+    "pandas",
+    "problem solving",
+    "prompt engineering",
+    "python",
+    "pytorch",
+    "rag",
+    "react",
+    "rest apis",
+    "rust",
+    "scikit learn",
+    "sem",
+    "sql",
+    "tensorflow"
+  ],
+  "jd_skills": [
+    "agile",
+    "ai agents",
+    "artificial intelligence",
+    "express",
+    "javascript",
+    "leadership",
+    "llm",
+    "llms",
+    "mongodb",
+    "nodejs",
+    "problem solving",
+    "rag",
+    "react",
+    "rest api",
+    "rest apis",
+    "sql"
+  ],
+  "matched_skills": [
+    "artificial intelligence",
+    "express",
+    "javascript",
+    "leadership",
+    "llm",
+    "mongodb",
+    "nodejs",
+    "problem solving",
+    "rag",
+    "react",
+    "rest apis",
+    "sql"
+  ],
+  "missing_skills": [
+    "agile",
+    "ai agents"
+  ],
+  "resume_experience": 0.6,
+  "jd_experience": 2.0,
+  "is_overqualified": false,
+  "resume_domain": "Data Science",
+  "jd_domain": "Data Science",
+  "education_degree": "B.Tech CSE",
+  "education_level": "Bachelor",
+  "certifications": [],
+  "extraction_method": "Rules_Primary_LLM_Fallback",
+  "prediction": "match",
+  "confidence": 0.89,
+  "needs_human_review": false,
+  "review_reason": null,
+  "reasons": [
+    {
+      "factor": "Skill Match",
+      "value": 0.86,
+      "direction": "supported",
+      "impact": 0.225
+    },
+    {
+      "factor": "Number of Matched Skills",
+      "value": 12.0,
+      "direction": "supported",
+      "impact": 0.149
+    },
+    {
+      "factor": "Overall Semantic Fit",
+      "value": 0.29,
+      "direction": "supported",
+      "impact": 0.073
+    },
+    {
+      "factor": "Number of Missing Skills",
+      "value": 2.0,
+      "direction": "supported",
+      "impact": 0.069
+    }
+  ],
+  "dynamic_recommendations": [
+    {
+      "skill": "agile",
+      "resource": "Industry-standard certification or hands-on portfolio project in Agile"
+    },
+    {
+      "skill": "ai agents",
+      "resource": "Industry-standard certification or hands-on portfolio project in Ai Agents"
+    }
+  ],
+  "parsing_metadata": {
+    "parser_used": "docling",
+    "extraction_method": "Rules_Primary_LLM_Fallback",
+    "warnings": [],
+    "sections_detected": [
+      "header",
+      "summary",
+      "experience",
+      "projects",
+      "skills",
+      "education"
+    ]
+  },
+  "parsed_resume": {
+    "name": "Naman Goyal",
+    "email": "gnaman180@gmail.com",
+    "phone": "+916377992203",
+    "jobs": [
+      {
+        "company": "JKLU",
+        "designation": "Teaching Assistant",
+        "start_date": "January 2026",
+        "end_date": "Present",
+        "employment_type": "",
+        "description": [
+          "Assisted students in C programming labs with coding concepts, debugging, and problem-solving.",
+          "Guided students in C programming and evaluated lab performance with feedback.",
+          "Supported faculty in ensuring smooth lab sessions and tracking student progress."
+        ],
+        "confidence": 0.8
+      },
+      {
+        "company": "Xorblin",
+        "designation": "Full Stack Intern",
+        "start_date": "January 2026",
+        "end_date": "February 2026",
+        "employment_type": "Internship",
+        "description": [
+          "Built full-stack features using modern web technologies.",
+          "Developed REST APIs and optimized backend performance.",
+          "Designed responsive UI with improved UX."
+        ],
+        "confidence": 0.8
+      },
+      {
+        "company": "JKLU",
+        "designation": "Core Member",
+        "start_date": "October 2025",
+        "end_date": "November 2025",
+        "employment_type": "",
+        "description": [
+          "Core organizer of Tug of War event, managing team formation, fixtures, and match operations.",
+          "Conducted matches ensuring fair play and smooth event execution.",
+          "Developed leadership, coordination, and event management skills under real-time constraints."
+        ],
+        "confidence": 0.8
+      }
+    ],
+    "education": [
+      {
+        "institution": "JK Lakshmipat University, Jaipur",
+        "degree": "B.Tech CSE(AI)",
+        "field": "",
+        "start_date": "",
+        "end_date": "",
+        "gpa": "8.82",
+        "confidence": 0.85
+      }
+    ]
+  }
+}

@@ -290,5 +290,13 @@ def detect_sections(doc: ResumeDocument) -> dict[str, list[TextBlock]]:
 
 
 def section_to_text(blocks: list[TextBlock]) -> str:
-    """Flatten a list of TextBlocks into a single string for LLM prompts."""
-    return "\n".join(b.text for b in blocks if b.text.strip())
+    """Flatten a list of TextBlocks into a single string for LLM prompts and rules."""
+    lines = []
+    for b in blocks:
+        text = b.text.strip()
+        if not text:
+            continue
+        if b.block_type == "list_item" and not re.match(r"^[\-\*•·▪▸►‣⁃→✓]", text):
+            text = f"- {text}"
+        lines.append(text)
+    return "\n".join(lines)

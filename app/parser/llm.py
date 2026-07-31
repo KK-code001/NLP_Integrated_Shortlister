@@ -90,26 +90,32 @@ def extract_contact_info(header_text: str) -> dict:
             if m:
                 github = m.group(0)
 
-    # Name heuristic: scan lines for 2–4 capitalized words, excluding locations/contacts
-    _LOCATION_WORDS = {"jaipur", "rajasthan", "india", "delhi", "mumbai", "bangalore", "bengaluru", "profile", "summary", "experience"}
-    for line in lines[:15]:
-        line_clean = line.strip()
-        if "@" in line_clean or re.search(r"\d", line_clean) or "/" in line_clean:
-            continue
-        cleaned = re.sub(r"[^a-zA-Z\s]", "", line_clean).strip()
-        words = cleaned.split()
-        if 2 <= len(words) <= 4:
-            if not any(w.lower() in _LOCATION_WORDS for w in words):
-                name = cleaned.title()
-                break
+    # Priority 1: Infer name from LinkedIn URL (most reliable on sidebar resumes)
+    # e.g., linkedin.com/in/naman-goyal-ba12b1333 -> Naman Goyal
+    m = re.search(r"(?:linkedin\.com/in/|(?<!\w)in/)([a-zA-Z]{2,})-([a-zA-Z]{2,})", header_text, re.IGNORECASE)
+    if m:
+        name = f"{m.group(1).capitalize()} {m.group(2).capitalize()}"
 
-    # Fallback 1: Infer name from LinkedIn URL (e.g., linkedin.com/in/naman-goyal-123 -> Naman Goyal)
+    # Priority 2: Line-scan heuristic — 2-4 capitalized words, excluding locations/tech phrases
     if not name:
-        m = re.search(r"(?:linkedin\.com/in/|in/)([a-zA-Z]+)-([a-zA-Z]+)", header_text, re.IGNORECASE)
-        if m:
-            name = f"{m.group(1).capitalize()} {m.group(2).capitalize()}"
+        _SKIP_WORDS = {
+            "jaipur", "rajasthan", "india", "delhi", "mumbai", "bangalore", "bengaluru",
+            "profile", "summary", "experience", "stack", "engineer", "developer", "intern",
+            "aspiring", "seeking", "full", "frontend", "backend", "software", "data",
+            "machine", "learning", "science", "analyst", "manager", "designer",
+        }
+        for line in lines[:15]:
+            line_clean = line.strip()
+            if "@" in line_clean or re.search(r"\d", line_clean) or "/" in line_clean or "." in line_clean:
+                continue
+            cleaned = re.sub(r"[^a-zA-Z\s]", "", line_clean).strip()
+            words = cleaned.split()
+            if 2 <= len(words) <= 4:
+                if not any(w.lower() in _SKIP_WORDS for w in words):
+                    name = cleaned.title()
+                    break
 
-    # Fallback 2: Infer name from email handle (e.g. gnaman180@gmail.com -> Naman)
+    # Priority 3: Infer name from email handle (e.g. gnaman180@gmail.com -> Naman)
     if not name and email:
         handle = email.split("@")[0]
         handle_clean = re.sub(r"\d+", "", handle)

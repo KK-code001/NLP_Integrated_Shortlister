@@ -419,10 +419,10 @@ def parse_resume_document(file_path: str) -> ResumeDocument:
 
     if ext == ".pdf":
         return (
-            _parse_with_docling(file_path)
-            or _parse_with_pymupdf(file_path)
-            or _parse_with_pdfplumber(file_path)
-            or _parse_with_ocr(file_path)
+            _parse_with_docling(file_path)          # best: AI layout + reading order
+            or _parse_with_pymupdf(file_path)       # good: column-aware geometric sort
+            or _parse_with_pdfplumber(file_path)    # basic: plain text dump
+            or _parse_with_ocr(file_path)           # last resort: scanned/image PDFs
             or _empty_document(file_path, "pdf_failed")
         )
 
