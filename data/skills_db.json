@@ -105,7 +105,14 @@
     "image classification": "computer vision",
     "generative ai": "artificial intelligence",
     "gen ai": "artificial intelligence",
-    "mlops": "machine learning"
+    "mlops": "machine learning",
+    "audit": "auditing",
+    "audited": "auditing",
+    "audits": "auditing",
+    "internal audit": "auditing",
+    "internal auditing": "auditing",
+    "compliance audit": "auditing",
+    "financial audit": "auditing"
   },
   "implied_skills": {
     "github": ["git"],

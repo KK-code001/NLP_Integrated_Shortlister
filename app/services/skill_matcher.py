@@ -81,6 +81,9 @@ def _normalize_skill_token(skill: str) -> str:
         "ai agents": "ai agent",
         "web apis": "web api",
         "apis": "api",
+        "audit": "auditing",
+        "audited": "auditing",
+        "audits": "auditing",
     }
     return _PLURAL_MAP.get(s, s)
 
@@ -104,11 +107,36 @@ def skill_match_score(resume_skills: list, jd_skills: list) -> float:
     matched = len(res_norm & jd_norm)
     return round(matched / len(jd_norm), 2)
 
+# Domain-defining specialized skills that carry higher weight in domain classification
+_SPECIALIZED_DOMAIN_WEIGHTS = {
+    "Data Science": {"llm", "llms", "rag", "ai agents", "machine learning", "deep learning", "pytorch", "tensorflow", "scikit learn", "nlp", "prompt engineering", "langchain", "llamaindex", "transformers", "vector database", "fine tuning"},
+    "Cyber Security": {"penetration testing", "ethical hacking", "siem", "splunk", "metasploit", "wireshark", "burp suite", "owasp top 10", "soc operations"},
+    "DevOps": {"kubernetes", "docker", "terraform", "ansible", "jenkins", "eks", "gke", "helm", "istio", "argocd", "infrastructure as code"},
+    "UX/UI Design": {"figma", "sketch", "wireframing", "prototyping", "usability testing", "interaction design"},
+    "Finance": {"cfa", "ca", "valuation", "equity research", "dcf analysis", "bloomberg terminal", "lbo modeling"},
+}
+
+
 def identify_domain(skill_list: list) -> str:
-    scores = {domain: len(set(skill_list) & set(skills))
-              for domain, skills in DOMAIN_SKILLS.items()}
+    if not skill_list:
+        return "Unknown"
+
+    skills_set = set(skill_list)
+    scores = {}
+
+    for domain, skills in DOMAIN_SKILLS.items():
+        base_matches = skills_set & set(skills)
+        score = float(len(base_matches))
+
+        # Apply higher weight for specialized domain-defining skills
+        specialized = _SPECIALIZED_DOMAIN_WEIGHTS.get(domain, set())
+        spec_matches = base_matches & specialized
+        score += len(spec_matches) * 1.5   # 1.5x bonus for specialized skills
+
+        scores[domain] = score
+
     best_domain = max(scores, key=scores.get)
-    return "Unknown" if scores[best_domain] == 0 else best_domain
+    return "Unknown" if scores[best_domain] == 0.0 else best_domain
 
 # Sentence-BERT Semantic Similarity (Lazy Loaded)
 _sbert_model = None

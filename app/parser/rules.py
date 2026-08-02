@@ -28,14 +28,26 @@ _MONTH_PAT = (
     r"dec(?:ember)?)"
 )
 _YEAR_PAT   = r"(?:19|20)\d{2}"
-_PRESENT_PAT = r"(?:present|current|now)"
+_PRESENT_PAT = r"(?:present|current|now|ongoing|till\s*(?:date|now))"
+
+# Additional date patterns: MM/YYYY, Q1-Q4, academic seasons
+_MM_YEAR_PAT = r"(?:\d{1,2}[/\-]\d{4}|\d{4}[/\-]\d{1,2})"
+_QUARTER_PAT = r"(?:Q[1-4]\s*" + _YEAR_PAT + r")"
+_SEASON_PAT = r"(?:(?:spring|summer|fall|autumn|winter)\s+" + _YEAR_PAT + r")"
+
+# A single date token: any of the above patterns
+_DATE_TOKEN = (
+    rf"(?:{_MONTH_PAT}\s+{_YEAR_PAT}|{_YEAR_PAT}|{_MONTH_PAT}"
+    rf"|{_MM_YEAR_PAT}|{_QUARTER_PAT}|{_SEASON_PAT})"
+)
 
 # Matches full date ranges: "January 2026 - Present", "Jan 2026 - Feb 2026",
-# "2026 - Present", "October 2025 - November 2025"
+# "2026 - Present", "06/2020 - 02/2023", "Q1 2024 - Q3 2024",
+# "Summer 2023 - Fall 2023", "October 2025 - November 2025"
 _DATE_RANGE_RE = re.compile(
-    rf"(?:{_MONTH_PAT}\s+{_YEAR_PAT}|{_YEAR_PAT}|{_MONTH_PAT})"
+    rf"{_DATE_TOKEN}"
     r"[\s,]*[\-–—/][\s,]*"
-    rf"(?:{_PRESENT_PAT}|{_MONTH_PAT}\s+{_YEAR_PAT}|{_YEAR_PAT}|{_MONTH_PAT})",
+    rf"(?:{_PRESENT_PAT}|{_DATE_TOKEN})",
     re.IGNORECASE,
 )
 
@@ -57,11 +69,20 @@ _GPA_RE = re.compile(
 
 # Known role keywords — a line containing any of these is likely a job title
 _ROLE_KW = {
-    "engineer", "developer", "intern", "internship", "analyst", "manager",
-    "lead", "architect", "consultant", "specialist", "assistant", "associate",
-    "officer", "director", "head", "coordinator", "researcher", "scientist",
-    "designer", "executive", "member", "trainee", "fellow", "technician",
-    "founder", "co-founder", "cofounder", "ceo", "cto", "vp",
+    # Engineering, Tech & Product
+    "engineer", "developer", "programmer", "architect", "lead", "head", "cto", "ceo",
+    "founder", "co-founder", "cofounder", "vp", "director", "admin", "administrator",
+    "specialist", "technician", "support", "sysadmin", "devops",
+    # Design & Creative
+    "designer", "illustrator", "animator", "artist", "creative",
+    # Business, Finance, Legal & HR
+    "manager", "consultant", "analyst", "strategist", "marketer", "marketing",
+    "sales", "accountant", "auditor", "article", "articleship", "lawyer",
+    "counsel", "recruiter", "hr", "executive", "officer", "associate",
+    "assistant", "coordinator", "advisor", "agent", "representative",
+    # Education, Research & Academia
+    "researcher", "scientist", "fellow", "trainee", "intern", "internship",
+    "professor", "teacher", "tutor", "instructor", "scholar", "member",
 }
 
 # Location words that should never be treated as company names
@@ -131,10 +152,8 @@ def _is_role_line(line: str) -> bool:
     elif "-" in line:
         primary_part = line.split("-")[0]
         
-    primary_lower = primary_part.lower()
-
-    # Direct keyword hit
-    if any(kw in primary_lower for kw in _ROLE_KW):
+    # Direct keyword hit anywhere in line (e.g. "AIC-JKLU, Jaipur — Intern", "Cloud Engineer, Google")
+    if any(kw in line_lower for kw in _ROLE_KW):
         return True
         
     # Short, title-cased, alphabetic — e.g. "Core Member", "Project Lead"

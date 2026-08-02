@@ -13,10 +13,24 @@ from __future__ import annotations
 
 import json
 import logging
-import ollama
+import urllib.request
+try:
+    import ollama
+except ImportError:
+    ollama = None
 from app.config import OLLAMA_MODEL
 
 logger = logging.getLogger(__name__)
+
+
+def _is_ollama_online() -> bool:
+    if ollama is None:
+        return False
+    try:
+        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=0.5)
+        return True
+    except Exception:
+        return False
 
 
 def generate_llm_insights(
@@ -35,13 +49,6 @@ def generate_llm_insights(
     semantic_similarity: float,
     certifications: list | None = None,
 ) -> dict:
-    """
-    Generate qualitative hiring insights by asking the LLM to reason
-    about the candidate's profile against the job requirements.
-
-    Returns a dict with keys:
-      fit_summary, strengths, gaps_and_risks, career_trajectory, source
-    """
     context = _build_context(
         candidate_name=candidate_name,
         prediction=prediction,
@@ -58,6 +65,9 @@ def generate_llm_insights(
         semantic_similarity=semantic_similarity,
         certifications=certifications,
     )
+
+    if not _is_ollama_online():
+        return _generate_fallback(context)
 
     try:
         return _generate_via_llm(context)

@@ -102,6 +102,22 @@ def parse_date_flexible(s: str) -> Optional[datetime]:
         if month_num:
             return datetime(int(year_str), month_num, 1)
 
+    # "Q1 2024" / "Q2 2024" / "Q3 2024" / "Q4 2024" — quarter-based dates
+    m = re.match(r"^q([1-4])\s*(\d{4})$", s_lower)
+    if m:
+        quarter, year = int(m.group(1)), int(m.group(2))
+        quarter_month = {1: 1, 2: 4, 3: 7, 4: 10}[quarter]
+        return datetime(year, quarter_month, 1)
+
+    # "Spring 2024" / "Summer 2024" / "Fall 2024" / "Winter 2024" — season dates
+    _SEASON_TO_MONTH = {
+        "spring": 3, "summer": 6, "fall": 9, "autumn": 9, "winter": 12,
+    }
+    m = re.match(r"^(spring|summer|fall|autumn|winter)\s+(\d{4})$", s_lower)
+    if m:
+        season_month = _SEASON_TO_MONTH.get(m.group(1), 1)
+        return datetime(int(m.group(2)), season_month, 1)
+
     # "Year Month" → "2021 Jan"
     m = re.match(r"^(\d{4})\s+([a-z]+)\.?$", s_lower)
     if m:

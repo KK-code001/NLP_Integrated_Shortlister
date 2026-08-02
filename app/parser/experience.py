@@ -75,6 +75,39 @@ def calculate_total_experience(jobs: list[dict]) -> Optional[float]:
     return round(total_months / 12.0, 1)
 
 
+def format_years_and_months(years_float: Optional[float]) -> str:
+    """
+    Format a floating-point year value into a human-readable 'X years Y months' string.
+
+    Examples:
+      1.8  → '1 year 10 months'
+      1.4  → '1 year 5 months'
+      0.5  → '6 months'
+      2.0  → '2 years'
+      None → 'Not stated / unverified'
+    """
+    if years_float is None:
+        return "Not stated / unverified"
+
+    try:
+        total_months = round(float(years_float) * 12.0)
+        if total_months <= 0:
+            return "0 months"
+
+        y = total_months // 12
+        m = total_months % 12
+
+        parts = []
+        if y > 0:
+            parts.append(f"{y} {'year' if y == 1 else 'years'}")
+        if m > 0:
+            parts.append(f"{m} {'month' if m == 1 else 'months'}")
+
+        return " ".join(parts) if parts else "0 months"
+    except (ValueError, TypeError):
+        return str(years_float)
+
+
 def separate_internships(jobs: list[dict]) -> tuple[list[dict], list[dict]]:
     """
     Split job records into (full_time_or_unknown, internships).

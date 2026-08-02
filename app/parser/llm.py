@@ -14,7 +14,10 @@ from __future__ import annotations
 
 import json
 import re
-import ollama
+try:
+    import ollama
+except ImportError:
+    ollama = None
 from app.config import OLLAMA_MODEL
 
 
@@ -24,6 +27,8 @@ from app.config import OLLAMA_MODEL
 
 def _chat(prompt: str) -> dict:
     """Call Ollama and return parsed JSON. Raises on any failure."""
+    if ollama is None:
+        raise RuntimeError("ollama package not installed")
     response = ollama.chat(
         model=OLLAMA_MODEL,
         messages=[{"role": "user", "content": prompt}],
@@ -61,11 +66,40 @@ _PHONE_RE    = re.compile(r"(\+?\d[\d\s\-\(\)]{7,}\d)")
 _LINKEDIN_RE = re.compile(r"linkedin\.com/in/[\w\-]+", re.IGNORECASE)
 _GITHUB_RE   = re.compile(r"github\.com/[\w\-]+", re.IGNORECASE)
 
+# Words that should never be treated as a candidate name
+_NAME_SKIP_WORDS = {
+    # Locations
+    "jaipur", "rajasthan", "india", "delhi", "mumbai", "bangalore", "bengaluru",
+    "hyderabad", "pune", "chennai", "kolkata", "noida", "gurugram", "gurgaon",
+    "lucknow", "chandigarh", "ahmedabad", "bhopal", "patna", "jodhpur",
+    "new", "york", "london", "remote", "hybrid", "onsite",
+    # Section headings
+    "profile", "summary", "experience", "education", "skills", "projects",
+    "certifications", "references", "awards", "publications", "languages",
+    "contact", "objective", "overview", "interests", "volunteering",
+    # Role / tech words
+    "stack", "engineer", "developer", "intern", "aspiring", "seeking", "full",
+    "frontend", "backend", "software", "data", "machine", "learning", "science",
+    "analyst", "manager", "designer", "architect", "consultant", "specialist",
+    "assistant", "professor", "researcher", "technician", "trainee", "fellow",
+    "curriculum", "vitae", "resume", "professional",
+}
 
-def extract_contact_info(header_text: str) -> dict:
+
+def extract_contact_info(header_text: str, blocks: list | None = None) -> dict:
     """
     Deterministic regex-based contact extraction from the resume header.
     No LLM call — fast and reliable for structured fields.
+
+    Uses a 4-priority chain for name extraction:
+      Priority 0: Font-size detection (largest text on page 1 from blocks)
+      Priority 1: LinkedIn URL name inference
+      Priority 2: Scored line-scan (ALL lines, weighted by position)
+      Priority 3: Email handle fallback
+
+    Args:
+        header_text: The text to search for contact info.
+        blocks: Optional list of TextBlock objects with font_size metadata.
 
     Returns: name, email, phone, linkedin, github.
     """
@@ -90,37 +124,42 @@ def extract_contact_info(header_text: str) -> dict:
             if m:
                 github = m.group(0)
 
-    # Priority 1: Infer name from LinkedIn URL (most reliable on sidebar resumes)
-    # e.g., linkedin.com/in/naman-goyal-ba12b1333 -> Naman Goyal
-    m = re.search(r"(?:linkedin\.com/in/|(?<!\w)in/)([a-zA-Z]{2,})-([a-zA-Z]{2,})", header_text, re.IGNORECASE)
-    if m:
-        name = f"{m.group(1).capitalize()} {m.group(2).capitalize()}"
+    # ── Priority 0: Font-size-based name detection ────────────────────────
+    # The candidate's name is almost always the largest font on page 1.
+    if blocks:
+        name = _extract_name_by_font_size(blocks)
 
-    # Priority 2: Line-scan heuristic — 2-4 capitalized words, excluding locations/tech phrases
+    # ── Priority 1: LinkedIn URL name inference ──────────────────────────
+    # Handles: linkedin.com/in/firstname-lastname-hash123
+    #          linkedin.com/in/firstname-middle-lastname
     if not name:
-        _SKIP_WORDS = {
-            "jaipur", "rajasthan", "india", "delhi", "mumbai", "bangalore", "bengaluru",
-            "profile", "summary", "experience", "stack", "engineer", "developer", "intern",
-            "aspiring", "seeking", "full", "frontend", "backend", "software", "data",
-            "machine", "learning", "science", "analyst", "manager", "designer",
-        }
-        for line in lines[:15]:
-            line_clean = line.strip()
-            if "@" in line_clean or re.search(r"\d", line_clean) or "/" in line_clean or "." in line_clean:
-                continue
-            cleaned = re.sub(r"[^a-zA-Z\s]", "", line_clean).strip()
-            words = cleaned.split()
-            if 2 <= len(words) <= 4:
-                if not any(w.lower() in _SKIP_WORDS for w in words):
-                    name = cleaned.title()
-                    break
+        # Try 2-part name first (most common: firstname-lastname)
+        m = re.search(
+            r"linkedin\.com/in/([a-zA-Z]{2,})-([a-zA-Z]{2,})(?:-[a-zA-Z0-9]*)?",
+            header_text, re.IGNORECASE,
+        )
+        if m:
+            part1, part2 = m.group(1), m.group(2)
+            # Reject if part2 looks like a hash (all lowercase + digits pattern)
+            if len(part2) <= 10:
+                name = f"{part1.capitalize()} {part2.capitalize()}"
 
-    # Priority 3: Infer name from email handle (e.g. gnaman180@gmail.com -> Naman)
+    # ── Priority 2: Scored line-scan (ALL lines, position-weighted) ──────
+    # Scans every line, not just the first 15. Lines earlier in the document
+    # get a higher score; lines matching more "name-like" traits get bonuses.
+    if not name:
+        name = _extract_name_by_line_scan(lines)
+
+    # ── Priority 3: Email handle fallback ─────────────────────────────────
     if not name and email:
         handle = email.split("@")[0]
-        handle_clean = re.sub(r"\d+", "", handle)
-        if len(handle_clean) >= 3:
-            name = handle_clean.strip("._-").title()
+        # Try splitting on dots/underscores first: john.doe -> John Doe
+        parts = re.split(r"[._]", handle)
+        alpha_parts = [re.sub(r"\d+", "", p).strip() for p in parts if re.sub(r"\d+", "", p).strip()]
+        if len(alpha_parts) >= 2 and all(len(p) >= 2 for p in alpha_parts):
+            name = " ".join(p.capitalize() for p in alpha_parts)
+        elif alpha_parts and len(alpha_parts[0]) >= 3:
+            name = alpha_parts[0].capitalize()
 
     return {
         "name":     name,
@@ -129,6 +168,139 @@ def extract_contact_info(header_text: str) -> dict:
         "linkedin": linkedin,
         "github":   github,
     }
+
+
+def _extract_name_by_font_size(blocks: list) -> str:
+    """
+    Find the candidate name by identifying the largest-font text on page 1.
+    Combines adjacent blocks with matching font sizes if single-word candidates are found.
+    Handles character-spaced names (e.g. 'S h o u r y a').
+    """
+    page1_blocks = [
+        b for b in blocks
+        if getattr(b, "page", 0) <= 1
+        and getattr(b, "font_size", 0) > 0
+    ]
+    if not page1_blocks:
+        return ""
+
+    # Sort by font_size descending — largest first
+    page1_blocks.sort(key=lambda b: getattr(b, "font_size", 0), reverse=True)
+
+    candidates = []
+    for i, block in enumerate(page1_blocks):
+        text = block.text.strip()
+        # Collapse character spacing: 'S h o u r y a' -> 'Shourya'
+        if re.search(r"\b[a-zA-Z]\s+[a-zA-Z]\b", text):
+            text = re.sub(r"\s+", "", text)
+
+        cleaned = re.sub(r"[^a-zA-Z\s]", "", text).strip()
+        words = cleaned.split()
+        if not words:
+            continue
+
+        if any(w.lower() in _NAME_SKIP_WORDS for w in words):
+            continue
+        if re.search(r"\d", text) or "@" in text or "/" in text:
+            continue
+
+        # If we got a 2-5 word full name, return it immediately
+        if 2 <= len(words) <= 5:
+            return cleaned.title()
+
+        # If single-word first name, look for adjacent block with similar font size to form full name
+        if len(words) == 1 and len(words[0]) >= 2:
+            single_name = words[0].capitalize()
+            # Look at remaining blocks for surname
+            for next_b in page1_blocks[i+1:]:
+                next_text = next_b.text.strip()
+                if re.search(r"\b[a-zA-Z]\s+[a-zA-Z]\b", next_text):
+                    next_text = re.sub(r"\s+", "", next_text)
+                next_cleaned = re.sub(r"[^a-zA-Z\s]", "", next_text).strip()
+                next_words = next_cleaned.split()
+                if 1 <= len(next_words) <= 3 and not any(nw.lower() in _NAME_SKIP_WORDS for nw in next_words):
+                    if not re.search(r"\d", next_text) and "@" not in next_text:
+                        return f"{single_name} {next_cleaned.title()}"
+            candidates.append(single_name)
+
+    return candidates[0] if candidates else ""
+
+
+def _extract_name_by_line_scan(lines: list[str]) -> str:
+    """
+    Score every line in the document for 'name-likeness' and return the best.
+
+    Scoring:
+      +10 : 2-4 alphabetic words with no digits/special chars
+      +5  : Appears in first 10 lines (position bonus)
+      +3  : Appears in lines 10-25
+      +2  : All words start with uppercase
+      -50 : Contains skip words (locations, tech terms, headings)
+      -50 : Contains email, URL, phone, or digits
+    """
+    best_score = 0
+    best_name = ""
+
+    for idx, line in enumerate(lines):
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+
+        # Collapse character spacing: 'S h o u r y a' -> 'Shourya'
+        if re.search(r"\b[a-zA-Z]\s+[a-zA-Z]\b", line_clean):
+            line_clean = re.sub(r"\s+", "", line_clean)
+
+        # Immediate disqualifiers
+        if "@" in line_clean or "/" in line_clean:
+            continue
+        if any(url_kw in line_clean.lower() for url_kw in ["linkedin", "github", "http", "www"]):
+            continue
+        if re.search(r"\d", line_clean):
+            continue
+        if "." in line_clean and not re.fullmatch(r"[A-Za-z\.\s]+", line_clean):
+            continue
+
+        # Strip non-alpha chars for name check
+        cleaned = re.sub(r"[^a-zA-Z\s]", "", line_clean).strip()
+        words = cleaned.split()
+
+        if not (1 <= len(words) <= 5):
+            continue
+
+        # Skip if any word is a known non-name word
+        if any(w.lower() in _NAME_SKIP_WORDS for w in words):
+            continue
+
+        # Build score
+        score = 10  # Base: looks like a name
+
+        # Position bonus (earlier = more likely to be a name)
+        if idx < 5:
+            score += 8
+        elif idx < 10:
+            score += 5
+        elif idx < 25:
+            score += 3
+
+        # Word count bonus (2-3 words is ideal for names, 1 word is penalized slightly)
+        if 2 <= len(words) <= 3:
+            score += 5
+        elif len(words) == 1:
+            score -= 2
+
+        # Capitalization bonus
+        if all(w[0].isupper() for w in words if w):
+            score += 2
+
+        # All-caps bonus (common in resume headers)
+        if line_clean == line_clean.upper() and len(words) >= 2:
+            score += 2
+
+        if score > best_score:
+            best_score = score
+            best_name = cleaned.title()
+
+    return best_name if best_score >= 10 else ""
 
 
 # ---------------------------------------------------------------------------

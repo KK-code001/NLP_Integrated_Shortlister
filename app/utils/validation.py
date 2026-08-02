@@ -45,17 +45,11 @@ def validate_job(job: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     # Reject/Fix: company looks like a plain year or starts with dates
     # If the LLM accidentally includes the date range prefix (e.g. "2018-2019 Cloud Engineer"), strip it
     cleaned_company = re.sub(r'^(?:19|20)\d{2}\s*[\-–—\sto]*\s*(?:19|20)?\d{2}?\s*', '', company).strip()
-    # Strip common designation words if they leak into company
-    cleaned_company = re.sub(r'^(?:cloud engineer|software engineer|developer|engineer|professor|assistant professor)\s*,?\s*', '', cleaned_company, flags=re.IGNORECASE).strip()
 
     # If company looks like a bare 4-digit year, reject outright
     if _looks_like_year(cleaned_company):
         warnings.append(
-<<<<<<< HEAD
-            f"Rejected job: company field '{company}' looks like a year or does not contain a valid company name."
-=======
             f"Rejected job: company field '{company}' contains a year instead of a valid company name."
->>>>>>> 5e3c81e71f02af9a7b0079f7930b2897de4273c9
         )
         return {}, warnings
 

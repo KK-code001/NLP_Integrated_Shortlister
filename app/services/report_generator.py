@@ -1,27 +1,61 @@
 import json
-import ollama
+import urllib.request
+try:
+    import ollama
+except ImportError:
+    ollama = None
 from app.config import OLLAMA_MODEL
 from app.services.llm_insights import generate_llm_insights
 
-def suggest_learning_resources(missing_skills: list, candidate_domain: str = "", max_suggestions: int = 5) -> list:
-    """
-    Dynamic LLM-based Learning Resource Engine via Ollama (llama3.2).
-    Generates tailored, context-aware learning roadmaps for missing skills
-    instead of relying on a hardcoded JSON/dictionary map.
-    """
+
+def _is_ollama_online() -> bool:
+    if ollama is None:
+        return False
+    try:
+        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=0.5)
+        return True
+    except Exception:
+        return False
+
+
+def suggest_learning_resources(
+    missing_skills: list,
+    candidate_domain: str = "",
+    matched_skills: list = None,
+    experience_summary: str = "",
+    max_suggestions: int = 5
+) -> list:
     if not missing_skills:
         return []
 
     skills_to_query = missing_skills[:max_suggestions]
-    prompt = f"""
-    You are a professional technical career coach. A candidate is missing the following skills for a role in {candidate_domain or 'their domain'}:
-    Missing skills: {", ".join(skills_to_query)}
+    if not _is_ollama_online():
+        return [
+            {"skill": s, "resource": f"Industry-standard certification or hands-on portfolio project in {s.replace('_', ' ').title()}"}
+            for s in skills_to_query
+        ]
+    matched_str = ", ".join(matched_skills) if matched_skills else "None explicitly listed"
+    exp_str = experience_summary.strip() if experience_summary else "No detailed work history provided"
 
-    For each missing skill, suggest a specific, top-rated course, industry certification, or practical portfolio project recommendation.
+    prompt = f"""
+    You are an expert technical career coach evaluating a candidate for a role in {candidate_domain or 'their domain'}.
+
+    CANDIDATE PROFILE & CONTEXT:
+    - Matched/Verified Skills: {matched_str}
+    - Candidate Work Experience: {exp_str[:800]}
+
+    IDENTIFIED SKILL GAPS TO ADDRESS:
+    {", ".join(skills_to_query)}
+
+    INSTRUCTIONS:
+    For each missing skill:
+    1. Check if the candidate's work history or matched skills already show practical exposure or related experience.
+    2. If the candidate ALREADY has practical exposure to this domain, recommend an ADVANCED certification or industry credential (e.g. "Candidate has hands-on experience; recommend Senior/Professional Certification").
+    3. If it is a completely new skill gap, recommend a top-rated course, industry certification, or practical portfolio project.
 
     Return ONLY a raw JSON array of objects with no markdown syntax wrapping matching this exact key format:
     [
-      {{"skill": "name_of_skill", "resource": "specific course or certification recommendation"}}
+      {{"skill": "name_of_skill", "resource": "specific, context-aware recommendation"}}
     ]
     """
     try:
@@ -65,8 +99,26 @@ def assemble_final_report(feature_data: dict, ml_eval: dict) -> dict:
     dynamic learning resources, and qualitative LLM hiring insights.
     """
     missing_skills = feature_data.get("missing_skills", [])
+    matched_skills = feature_data.get("matched_skills", [])
     candidate_domain = feature_data.get("resume_domain", "")
-    recommendations = suggest_learning_resources(missing_skills, candidate_domain)
+    
+    # Construct experience summary string for LLM context
+    parsed_resume = feature_data.get("parsed_resume", {})
+    jobs = parsed_resume.get("jobs", []) if isinstance(parsed_resume, dict) else []
+    exp_summary_parts = []
+    for j in jobs:
+        comp = j.get("company", "")
+        desig = j.get("designation", "")
+        desc = " ".join(j.get("description", []))
+        exp_summary_parts.append(f"{desig} at {comp}: {desc}")
+    exp_summary_str = " | ".join(exp_summary_parts) if exp_summary_parts else f"Total Experience: {feature_data.get('resume_experience', 'Unknown')} yrs"
+
+    recommendations = suggest_learning_resources(
+        missing_skills=missing_skills,
+        candidate_domain=candidate_domain,
+        matched_skills=matched_skills,
+        experience_summary=exp_summary_str,
+    )
 
     # Generate qualitative LLM insights
     insights = generate_llm_insights(

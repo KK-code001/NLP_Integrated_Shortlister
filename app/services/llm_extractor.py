@@ -1,6 +1,9 @@
 import json
 import re
-import ollama
+try:
+    import ollama
+except ImportError:
+    ollama = None
 from app.config import OLLAMA_MODEL
 
 def extract_structured_data_llm(resume_text: str) -> dict:
@@ -9,6 +12,8 @@ def extract_structured_data_llm(resume_text: str) -> dict:
     Converts any arbitrary resume format (date ranges, project durations,
     written numbers, complex layouts) into a clean, normalized JSON schema.
     """
+    if ollama is None:
+        return {}
     prompt = f"""
     You are an expert HR data parser. Extract structured information from the following resume text.
     Calculate exact total years of work experience by evaluating dates, date ranges (e.g. Jan 2021 - Present),

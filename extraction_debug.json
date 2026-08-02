@@ -1,46 +1,36 @@
 {
   "features": {
-    "skill_match_score": 0.86,
-    "matched_skill_count": 12,
-    "missing_skill_count": 2,
-    "experience_match_score": 0.3,
-    "experience_ratio": 0.3,
+    "skill_match_score": 0.36,
+    "matched_skill_count": 5,
+    "missing_skill_count": 9,
+    "experience_match_score": 1.0,
+    "experience_ratio": 7.1,
     "resume_experience_mentioned": 1,
     "jd_experience_mentioned": 1,
     "unstated_experience_for_senior_role": 0,
-    "semantic_similarity_score": 0.2868,
-    "domain_match": 1
+    "semantic_similarity_score": 0.4168,
+    "domain_match": 0
   },
-  "candidate_name": "Naman Goyal",
+  "candidate_name": "Chloe Martinez",
   "resume_skills": [
-    "artificial intelligence",
-    "data analysis",
-    "data science",
-    "deep learning",
-    "excel",
-    "express",
+    "agile",
+    "angular",
+    "aws",
+    "ci cd",
     "git",
     "github",
+    "gitlab",
+    "inventory management",
+    "java",
     "javascript",
-    "leadership",
-    "llm",
-    "machine learning",
+    "jenkins",
     "mongodb",
     "nodejs",
-    "numpy",
-    "pandas",
-    "problem solving",
-    "prompt engineering",
     "python",
-    "pytorch",
-    "rag",
-    "react",
-    "rest apis",
-    "rust",
-    "scikit learn",
-    "sem",
+    "sales",
+    "spring",
     "sql",
-    "tensorflow"
+    "typescript"
   ],
   "jd_skills": [
     "agile",
@@ -61,138 +51,245 @@
     "sql"
   ],
   "matched_skills": [
-    "artificial intelligence",
-    "express",
+    "agile",
     "javascript",
-    "leadership",
-    "llm",
     "mongodb",
     "nodejs",
-    "problem solving",
-    "rag",
-    "react",
-    "rest apis",
     "sql"
   ],
   "missing_skills": [
-    "agile",
-    "ai agents"
+    "ai agents",
+    "artificial intelligence",
+    "express",
+    "leadership",
+    "llms",
+    "problem solving",
+    "rag",
+    "react",
+    "rest apis"
   ],
-  "resume_experience": 0.6,
+  "resume_experience": 14.2,
   "jd_experience": 2.0,
-  "is_overqualified": false,
-  "resume_domain": "Data Science",
+  "is_overqualified": true,
+  "resume_domain": "Software Development",
   "jd_domain": "Data Science",
-  "education_degree": "B.Tech CSE",
-  "education_level": "Bachelor",
+  "education_degree": "Master",
+  "education_level": "Master",
   "certifications": [],
   "extraction_method": "Rules_Primary_LLM_Fallback",
   "prediction": "match",
-  "confidence": 0.89,
-  "needs_human_review": false,
-  "review_reason": null,
+  "confidence": 0.54,
+  "needs_human_review": true,
+  "review_reason": "low model confidence",
   "reasons": [
     {
+      "factor": "Domain Match",
+      "value": 0.0,
+      "direction": "worked against",
+      "impact": -0.13
+    },
+    {
       "factor": "Skill Match",
-      "value": 0.86,
+      "value": 0.36,
       "direction": "supported",
-      "impact": 0.225
+      "impact": 0.125
     },
     {
       "factor": "Number of Matched Skills",
-      "value": 12.0,
+      "value": 5.0,
       "direction": "supported",
-      "impact": 0.149
+      "impact": 0.114
     },
     {
       "factor": "Overall Semantic Fit",
-      "value": 0.29,
-      "direction": "supported",
-      "impact": 0.073
-    },
-    {
-      "factor": "Number of Missing Skills",
-      "value": 2.0,
+      "value": 0.42,
       "direction": "supported",
       "impact": 0.069
     }
   ],
   "dynamic_recommendations": [
     {
-      "skill": "agile",
-      "resource": "Industry-standard certification or hands-on portfolio project in Agile"
-    },
-    {
       "skill": "ai agents",
       "resource": "Industry-standard certification or hands-on portfolio project in Ai Agents"
+    },
+    {
+      "skill": "artificial intelligence",
+      "resource": "Industry-standard certification or hands-on portfolio project in Artificial Intelligence"
+    },
+    {
+      "skill": "express",
+      "resource": "Industry-standard certification or hands-on portfolio project in Express"
+    },
+    {
+      "skill": "leadership",
+      "resource": "Industry-standard certification or hands-on portfolio project in Leadership"
+    },
+    {
+      "skill": "llms",
+      "resource": "Industry-standard certification or hands-on portfolio project in Llms"
     }
   ],
+  "llm_insights": {
+    "fit_summary": "Chloe Martinez may be an interesting fit for the Data Science team, as her experience in software development aligns with some aspects of the JD. However, her limited domain expertise and missing skills indicate a higher risk of underperformance. Overall, while there are some potential strengths, the candidate's overall match is weak (54% confidence).",
+    "strengths": [
+      "Her 14.2 years of experience in software development aligns with the required 2.0 years, suggesting she has a strong foundation to adapt to data science.",
+      "She possesses skills in MongoDB and NodeJS, which can be valuable assets for data science tasks involving large-scale database management and distributed systems."
+    ],
+    "gaps_and_risks": [
+      {
+        "gap": "her lack of domain expertise in Data Science and related fields (e.g., AI, Machine Learning) may hinder her ability to contribute meaningfully.",
+        "severity": "HIGH",
+        "mitigation": "consider additional training or onboarding programs focused on data science fundamentals."
+      },
+      {
+        "gap": "the missing skills like Express, React, and REST APIs indicate potential difficulties in adapting to the required tools and technologies.",
+        "severity": "MEDIUM",
+        "mitigation": "offer training or mentorship to help her bridge this gap."
+      }
+    ],
+    "career_trajectory": "While Chloe's overall profile doesn't strongly align with a traditional data science trajectory, she does have experience in software development that could serve as a foundation for growth and learning within the field.",
+    "source": "ollama_llm"
+  },
   "parsing_metadata": {
-    "parser_used": "docling",
+    "parser_used": "pymupdf",
     "extraction_method": "Rules_Primary_LLM_Fallback",
-    "warnings": [],
+    "warnings": [
+      "Duplicate job entry removed: Seattle, WA / .",
+      "Duplicate job entry removed: Seattle, WA / ."
+    ],
     "sections_detected": [
       "header",
       "summary",
       "experience",
-      "projects",
+      "education",
       "skills",
-      "education"
+      "projects"
     ]
   },
   "parsed_resume": {
-    "name": "Naman Goyal",
-    "email": "gnaman180@gmail.com",
-    "phone": "+916377992203",
+    "name": "Chloe Martinez",
+    "email": "",
+    "phone": "2015 - 12",
     "jobs": [
       {
-        "company": "JKLU",
-        "designation": "Teaching Assistant",
-        "start_date": "January 2026",
+        "company": "Cloud Solutions Expert",
+        "designation": "Senior Full Stack Developer",
+        "start_date": "",
+        "end_date": "",
+        "employment_type": "",
+        "description": [],
+        "confidence": 0.7
+      },
+      {
+        "company": "Company Not Identified",
+        "designation": "Lead Full Stack Developer",
+        "start_date": "01/2019",
         "end_date": "Present",
         "employment_type": "",
-        "description": [
-          "Assisted students in C programming labs with coding concepts, debugging, and problem-solving.",
-          "Guided students in C programming and evaluated lab performance with feedback.",
-          "Supported faculty in ensuring smooth lab sessions and tracking student progress."
-        ],
-        "confidence": 0.8
+        "description": [],
+        "confidence": 0.7
       },
       {
-        "company": "Xorblin",
-        "designation": "Full Stack Intern",
-        "start_date": "January 2026",
-        "end_date": "February 2026",
-        "employment_type": "Internship",
-        "description": [
-          "Built full-stack features using modern web technologies.",
-          "Developed REST APIs and optimized backend performance.",
-          "Designed responsive UI with improved UX."
-        ],
-        "confidence": 0.8
-      },
-      {
-        "company": "JKLU",
-        "designation": "Core Member",
-        "start_date": "October 2025",
-        "end_date": "November 2025",
+        "company": "Seattle, WA",
+        "designation": "Tech Innovations Inc.",
+        "start_date": "",
+        "end_date": "",
         "employment_type": "",
         "description": [
-          "Core organizer of Tug of War event, managing team formation, fixtures, and match operations.",
-          "Conducted matches ensuring fair play and smooth event execution.",
-          "Developed leadership, coordination, and event management skills under real-time constraints."
+          ""
         ],
         "confidence": 0.8
+      },
+      {
+        "company": "enhancing data processing",
+        "designation": "Spearheaded development of a cloud-based analytics platform",
+        "start_date": "",
+        "end_date": "",
+        "employment_type": "",
+        "description": [],
+        "confidence": 0.7
+      },
+      {
+        "company": "fostering a collaborative environment that reduced",
+        "designation": "Managed a team of 12 developers",
+        "start_date": "",
+        "end_date": "",
+        "employment_type": "",
+        "description": [],
+        "confidence": 0.7
+      },
+      {
+        "company": "Company Not Identified",
+        "designation": "Senior Software Engineer",
+        "start_date": "06/2015",
+        "end_date": "12/2018",
+        "employment_type": "",
+        "description": [],
+        "confidence": 0.7
+      },
+      {
+        "company": "consistency.",
+        "designation": "Contributed to reducing server downtime by 40% through efficient backend solutions.",
+        "start_date": "",
+        "end_date": "",
+        "employment_type": "",
+        "description": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "confidence": 0.8
+      },
+      {
+        "company": "Company Not Identified",
+        "designation": "Software Developer",
+        "start_date": "03/2012",
+        "end_date": "05/2015",
+        "employment_type": "",
+        "description": [],
+        "confidence": 0.7
+      },
+      {
+        "company": "optimization.",
+        "designation": "Enhanced application performance by 20% through effective database management and",
+        "start_date": "",
+        "end_date": "",
+        "employment_type": "",
+        "description": [],
+        "confidence": 0.7
+      },
+      {
+        "company": "Company Not Identified",
+        "designation": "boosting the client's sales by 150%.",
+        "start_date": "",
+        "end_date": "",
+        "employment_type": "",
+        "description": [
+          "",
+          "",
+          ""
+        ],
+        "confidence": 0.6
       }
     ],
     "education": [
       {
-        "institution": "JK Lakshmipat University, Jaipur",
-        "degree": "B.Tech CSE(AI)",
+        "institution": "University of Washington",
+        "degree": "Master of Science in Computer Science",
         "field": "",
-        "start_date": "",
-        "end_date": "",
-        "gpa": "8.82",
+        "start_date": "01/2010",
+        "end_date": "01/2012",
+        "gpa": "",
+        "confidence": 0.85
+      },
+      {
+        "institution": "University of Washington",
+        "degree": "Bachelor of Science in Information Technology",
+        "field": "",
+        "start_date": "01/2006",
+        "end_date": "01/2010",
+        "gpa": "",
         "confidence": 0.85
       }
     ]

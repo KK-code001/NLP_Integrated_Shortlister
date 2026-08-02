@@ -214,32 +214,75 @@ def _parse_with_pymupdf(file_path: str) -> Optional[ResumeDocument]:
         blocks: list[TextBlock] = []
 
         for page_num, page in enumerate(doc_fitz, start=1):
+            rect = page.rect
+            page_width = rect.width
             raw_blocks = page.get_text("dict")["blocks"]
+            text_blocks = [b for b in raw_blocks if b.get("type") == 0]
+            if not text_blocks:
+                continue
 
-            # Bucket rows by y-position (20px tolerance) then sort x within bucket
-            raw_blocks.sort(
-                key=lambda b: (round(b["bbox"][1] / 20) * 20, b["bbox"][0])
-            )
+            # Detect two-column layout: check if blocks exist on both left and right sides
+            left_side_blocks = [b for b in text_blocks if b["bbox"][0] < page_width * 0.42 and b["bbox"][1] > 100]
+            right_side_blocks = [b for b in text_blocks if b["bbox"][0] >= page_width * 0.42 and b["bbox"][1] > 100]
 
-            for blk in raw_blocks:
-                if blk.get("type") != 0:   # 0 = text, 1 = image
-                    continue
+            is_two_column = len(left_side_blocks) >= 2 and len(right_side_blocks) >= 2
+
+            if is_two_column:
+                # 1. Top full-width header (y < 100)
+                header_blocks = [b for b in text_blocks if b["bbox"][1] <= 100]
+                header_blocks.sort(key=lambda b: (b["bbox"][1], b["bbox"][0]))
+
+                # 2. Left column (x < 0.42 * width), sorted top-to-bottom
+                left_blocks = [b for b in text_blocks if b["bbox"][1] > 100 and b["bbox"][0] < page_width * 0.42]
+                left_blocks.sort(key=lambda b: (b["bbox"][1], b["bbox"][0]))
+
+                # 3. Right column (x >= 0.42 * width), sorted top-to-bottom
+                right_blocks = [b for b in text_blocks if b["bbox"][1] > 100 and b["bbox"][0] >= page_width * 0.42]
+                right_blocks.sort(key=lambda b: (b["bbox"][1], b["bbox"][0]))
+
+                ordered_blocks = header_blocks + left_blocks + right_blocks
+            else:
+                # Single column: sort by y-position (20px tolerance) then x-position
+                text_blocks.sort(key=lambda b: (round(b["bbox"][1] / 20) * 20, b["bbox"][0]))
+                ordered_blocks = text_blocks
+
+            for blk in ordered_blocks:
                 for line in blk.get("lines", []):
-                    for span in line.get("spans", []):
+                    spans = line.get("spans", [])
+                    if not spans:
+                        continue
+                    
+                    line_parts = []
+                    max_font_size = 0.0
+                    has_bold = False
+                    first_bbox = None
+
+                    for span in spans:
                         span_text = (span.get("text") or "").strip()
                         if not span_text:
                             continue
+                        line_parts.append(span_text)
                         flags = span.get("flags", 0)
-                        is_bold = bool(flags & (1 << 4))
-                        font_size = float(span.get("size", 0.0))
-                        blocks.append(TextBlock(
-                            text=span_text,
-                            block_type="text",
-                            page=page_num,
-                            bbox=tuple(span.get("bbox", ())),
-                            is_bold=is_bold,
-                            font_size=font_size,
-                        ))
+                        if bool(flags & (1 << 4)):
+                            has_bold = True
+                        fs = float(span.get("size", 0.0))
+                        if fs > max_font_size:
+                            max_font_size = fs
+                        if first_bbox is None:
+                            first_bbox = tuple(span.get("bbox", ()))
+
+                    if not line_parts:
+                        continue
+
+                    full_line_text = " ".join(line_parts).strip()
+                    blocks.append(TextBlock(
+                        text=full_line_text,
+                        block_type="text",
+                        page=page_num,
+                        bbox=first_bbox,
+                        is_bold=has_bold,
+                        font_size=max_font_size,
+                    ))
 
         if not blocks:
             logger.info("[Parser] ✗ PyMuPDF found no text blocks (scanned PDF?)")
@@ -358,10 +401,31 @@ def _parse_docx(file_path: str) -> Optional[ResumeDocument]:
 
 def _parse_with_ocr(file_path: str) -> Optional[ResumeDocument]:
     try:
-        logger.info("[Parser] Trying OCR (pytesseract) for: %s", file_path)
+        logger.info("[Parser] Trying OCR for: %s", file_path)
         ext = os.path.splitext(file_path)[1].lower()
-        pages = []
 
+        # Method A: Try RapidOCR (ONNX pure Python engine, zero native Tesseract installation required)
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+            ocr_engine = RapidOCR()
+            result, _ = ocr_engine(file_path)
+            if result:
+                lines = [item[1].strip() for item in result if item[1].strip()]
+                all_text = "\n".join(lines)
+                if all_text.strip():
+                    blocks = [TextBlock(text=l, block_type="paragraph") for l in lines]
+                    logger.info("[Parser] ✓ RapidOCR succeeded — %d lines extracted", len(blocks))
+                    return ResumeDocument(
+                        blocks=blocks,
+                        raw_text=all_text,
+                        source_path=file_path,
+                        parser_used="rapidocr",
+                    )
+        except Exception as exc:
+            logger.info("[Parser] RapidOCR attempt skipped: %s", exc)
+
+        # Method B: Fallback to pytesseract
+        pages = []
         if ext == ".pdf":
             from pdf2image import convert_from_path
             pages = convert_from_path(file_path)
@@ -381,7 +445,7 @@ def _parse_with_ocr(file_path: str) -> Optional[ResumeDocument]:
             for line in all_text.splitlines()
             if line.strip()
         ]
-        logger.info("[Parser] ✓ OCR succeeded — %d lines extracted", len(blocks))
+        logger.info("[Parser] ✓ pytesseract succeeded — %d lines extracted", len(blocks))
         return ResumeDocument(
             blocks=blocks,
             raw_text=all_text,
@@ -448,19 +512,10 @@ def parse_resume_document(file_path: str) -> ResumeDocument:
         return _empty_document(file_path, "docx_failed", warnings)
 
     if ext == ".pdf":
-<<<<<<< HEAD
-        return (
-            _parse_with_docling(file_path)          # best: AI layout + reading order
-            or _parse_with_pymupdf(file_path)       # good: column-aware geometric sort
-            or _parse_with_pdfplumber(file_path)    # basic: plain text dump
-            or _parse_with_ocr(file_path)           # last resort: scanned/image PDFs
-            or _empty_document(file_path, "pdf_failed")
-        )
-=======
         for parser_fn, name in [
             (_parse_with_pymupdf, "PyMuPDF"),
-            (_parse_with_pdfplumber, "pdfplumber"),
             (_parse_with_docling, "Docling"),
+            (_parse_with_pdfplumber, "pdfplumber"),
             (_parse_with_ocr, "OCR"),
         ]:
             doc = parser_fn(file_path)
@@ -471,7 +526,6 @@ def parse_resume_document(file_path: str) -> ResumeDocument:
 
         logger.error("[Parser] ✗ ALL parsers failed for PDF: %s", file_path)
         return _empty_document(file_path, "pdf_failed", warnings)
->>>>>>> 5e3c81e71f02af9a7b0079f7930b2897de4273c9
 
     # Unsupported extension — try Docling anyway
     doc = _parse_with_docling(file_path)

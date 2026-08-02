@@ -5,32 +5,75 @@ Usage (in VS Code / PyCharm):
     1. Set resume_path and jd_path below to your file paths.
     2. Press Run (F5 / Shift+F10).
 
+Flags:
+    --debug   Dump full JSON report to extraction_debug.json
+
 Supports: PDF, DOCX, TXT, JPG, PNG
 """
 
 import sys
 import os
+import json
+import logging
 from pathlib import Path
 
 # ── Make sure the project root is on sys.path ─────────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# ── Logging — direct to stderr so logs don't interleave with printed report ──
+# Only show our own parser chain logs; suppress noisy third-party loggers.
+_log_handler = logging.StreamHandler(sys.stderr)
+_log_handler.setFormatter(logging.Formatter("  [%(name)s] %(message)s"))
+
+# Set root logger to WARNING (suppresses most third-party noise)
+logging.basicConfig(level=logging.WARNING, handlers=[_log_handler])
+
+# Enable INFO only for our own parser modules
+logging.getLogger("app.parser").setLevel(logging.INFO)
+logging.getLogger("app.pipeline").setLevel(logging.INFO)
+
+# Explicitly silence noisy third-party loggers
+for _noisy in ("httpx", "httpcore", "ollama", "sentence_transformers",
+               "urllib3", "transformers", "torch", "filelock", "huggingface_hub"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
+# ── Flags ─────────────────────────────────────────────────────────────────────
+DEBUG_MODE = "--debug" in sys.argv
+
 # ── File paths ────────────────────────────────────────────────────────────────
-resume_path = input("Enter the path to the resume file: ").strip().strip('"').strip("'")
-jd_path     = input("Enter the path to the job description file: ").strip().strip('"').strip("'")
+def _clean_path(raw: str, default_relative: str) -> str:
+    """Strip whitespace, quotes, and PowerShell's & '...' wrapper. Uses default sample if empty."""
+    p = raw.strip()
+    if p.startswith("& "):
+        p = p[2:].strip()
+    p = p.strip('"').strip("'").strip()
+    
+    # If empty, use default sample file from ipdocs if present
+    if not p:
+        project_root = Path(__file__).resolve().parent
+        sample = project_root / "ipdocs" / default_relative
+        if sample.exists():
+            return str(sample)
+    return p
+
+raw_res = input("Enter path to resume file (press Enter for default sample): ")
+resume_path = _clean_path(raw_res, "Resume.pdf")
+
+raw_jd = input("Enter path to job description file (press Enter for default sample): ")
+jd_path = _clean_path(raw_jd, "Celebal_JD.pdf")
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 def main():
     # ── Validate paths ────────────────────────────────────────────────────────
     if not os.path.exists(resume_path):
-        print(f"[ERROR] Resume not found: {resume_path}")
-        print("  → Edit the resume_path variable at the top of run.py")
+        print(f"[ERROR] Resume not found: '{resume_path}'")
+        print("  -> Please enter a valid file path or place a resume in 'ipdocs/Resume.pdf'")
         sys.exit(1)
 
     if not os.path.exists(jd_path):
-        print(f"[ERROR] Job description not found: {jd_path}")
-        print("  → Edit the jd_path variable at the top of run.py")
+        print(f"[ERROR] Job description not found: '{jd_path}'")
+        print("  -> Please enter a valid file path or place a JD in 'ipdocs/Celebal_JD.pdf'")
         sys.exit(1)
 
     print("=" * 60)
@@ -46,8 +89,8 @@ def main():
         from app.pipeline import screen_candidate
     except ImportError as e:
         print(f"[ERROR] Could not import pipeline: {e}")
-        print("  → Make sure all dependencies are installed.")
-        print("  → Run:  pip install -r requirements.txt")
+        print("  -> Make sure all dependencies are installed.")
+        print("  -> Run:  pip install -r requirements.txt")
         sys.exit(1)
 
     # ── Ollama Pre-flight Check ───────────────────────────────────────────────
@@ -57,11 +100,11 @@ def main():
     try:
         # Check if the host port responds
         urllib.request.urlopen(OLLAMA_HOST, timeout=2)
-        print(f"  → Ollama server found at {OLLAMA_HOST}")
+        print(f"  -> Ollama server found at {OLLAMA_HOST}")
     except Exception:
         print(f"\n[WARNING] Ollama server is not reachable at {OLLAMA_HOST}!")
-        print("  → Make sure the Ollama application is running on your machine.")
-        print("  → The pipeline will run, but will fall back to rule-based parsing.")
+        print("  -> Make sure the Ollama application is running on your machine.")
+        print("  -> The pipeline will run, but will fall back to rule-based parsing.")
         print()
 
     print("[1/4] Parsing resume with Docling ...")
@@ -70,15 +113,34 @@ def main():
     print("[4/4] Running Random Forest + SHAP ...")
     print()
 
-    report = screen_candidate(resume_path, jd_path, is_file=True)
+    try:
+        report = screen_candidate(resume_path, jd_path, is_file=True)
+    except Exception as exc:
+        print(f"\n[ERROR] Pipeline crashed: {exc}")
+        print("  -> Run with --debug for more details, or check your file paths.")
+        logging.exception("Pipeline crash details:")
+        sys.exit(1)
 
     # ── Check for errors ──────────────────────────────────────────────────────
     if "error" in report:
         print(f"[ERROR] {report['error']}")
         sys.exit(1)
 
+    # ── Always dump JSON report for diagnostics ─────────────────────────────
+    debug_path = Path(__file__).resolve().parent / "extraction_debug.json"
+    with open(debug_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2, default=str)
+    if DEBUG_MODE:
+        print(f"[DEBUG] Full JSON report saved to: {debug_path}")
+
     # ── Print report ──────────────────────────────────────────────────────────
-    _print_report(report)
+    try:
+        _print_report(report)
+    except Exception as exc:
+        print(f"\n[ERROR] Report formatting failed: {exc}")
+        print("  -> Run with --debug to inspect the raw JSON output.")
+        if DEBUG_MODE:
+            print(json.dumps(report, indent=2, default=str))
 
 
 def _print_report(report: dict):
@@ -102,7 +164,9 @@ def _print_report(report: dict):
     def fmt_years(val):
         if val is None or (isinstance(val, float) and sys.modules.get('pandas') and sys.modules['pandas'].isna(val)):
             return "Not stated / unverified"
-        return f"{val:.1f} yrs"
+        from app.parser.experience import format_years_and_months
+        ym_str = format_years_and_months(val)
+        return f"{val:.1f} yrs ({ym_str})"
 
     def fmt_pct(val):
         try:
@@ -246,7 +310,13 @@ def _print_report(report: dict):
         print("-" * W)
         for rec in recs:
             if isinstance(rec, dict):
-                print(f"  - {str(rec.get('skill', '')).title():<22} -> {rec.get('resource', '')}")
+                skill_name = str(rec.get('skill', '')).title()
+                resource = str(rec.get('resource', ''))
+                # Truncate long resource strings to fit terminal width
+                max_res_len = W - 28  # leave room for skill name and formatting
+                if len(resource) > max_res_len:
+                    resource = resource[:max_res_len - 3] + "..."
+                print(f"  - {skill_name:<22} -> {resource}")
 
     print("\n" + "=" * W + "\n")
 

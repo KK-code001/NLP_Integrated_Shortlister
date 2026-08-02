@@ -78,14 +78,14 @@ def extract_from_document(resume_doc: ResumeDocument) -> dict:
         if extra_text:
             header_text = header_text + "\n" + extra_text
 
-    contact = extract_contact_info(header_text)
+    contact = extract_contact_info(header_text, blocks=resume_doc.blocks)
 
     # Fallback: some parsers (e.g. Docling) place sidebar content — including
     # the candidate name and contact details — AFTER the main body, so they
     # land in the last detected section rather than the header.  Scanning the
     # full raw text catches these cases.
     if not contact.get("name") or not contact.get("email"):
-        full_contact = extract_contact_info(resume_doc.raw_text)
+        full_contact = extract_contact_info(resume_doc.raw_text, blocks=resume_doc.blocks)
         if not contact.get("name"):
             contact["name"] = full_contact.get("name", "")
         if not contact.get("email"):
@@ -123,9 +123,9 @@ def extract_from_document(resume_doc: ResumeDocument) -> dict:
         non_exp_text = "\n".join(
             section_to_text(blocks)
             for key, blocks in sections.items()
-            if key != "experience"
+            if key not in ("experience", "education")
         )
-        found_dates: list[tuple[str, str]] = []
+        found_dates: list[tuple[str, str, int]] = []  # (start, end, position_in_text)
         seen_date_keys: set[tuple[str, str]] = set()
         for m in _DATE_RANGE_RE.finditer(non_exp_text):
             start, end = _parse_date_range(m.group(0))
@@ -139,10 +139,43 @@ def extract_from_document(resume_doc: ResumeDocument) -> dict:
             if key in seen_date_keys:
                 continue
             seen_date_keys.add(key)
-            found_dates.append((start.strip(), end.strip()))
-        for job, (start, end) in zip(undated, found_dates):
-            job["start_date"] = start
-            job["end_date"]   = end
+            found_dates.append((start.strip(), end.strip(), m.start()))
+
+        if not found_dates:
+            return
+
+        # Proximity matching: for each undated job, find the date closest
+        # to the job's company/designation text in the raw document.
+        raw_text = resume_doc.raw_text.lower()
+        used_dates: set[int] = set()
+        for job in undated:
+            job_text = f"{job.get('company', '')} {job.get('designation', '')}".lower().strip()
+            if not job_text:
+                continue
+            job_pos = raw_text.find(job_text)
+            if job_pos < 0:
+                # Try just the company name
+                company_lower = (job.get("company") or "").lower().strip()
+                if company_lower:
+                    job_pos = raw_text.find(company_lower)
+            if job_pos < 0:
+                continue
+
+            # Find the closest unused date by position distance
+            best_idx = -1
+            best_dist = float("inf")
+            for i, (start, end, date_pos) in enumerate(found_dates):
+                if i in used_dates:
+                    continue
+                dist = abs(date_pos - job_pos)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_idx = i
+
+            if best_idx >= 0:
+                job["start_date"] = found_dates[best_idx][0]
+                job["end_date"]   = found_dates[best_idx][1]
+                used_dates.add(best_idx)
 
     raw_jobs = exp_result.get("jobs", [])
     _patch_orphan_dates(raw_jobs)
@@ -150,9 +183,10 @@ def extract_from_document(resume_doc: ResumeDocument) -> dict:
     valid_jobs, job_warnings = validate_and_clean_jobs(raw_jobs)
     warnings.extend(job_warnings)
 
-    # If rules gave jobs but none passed validation, retry with LLM once
-    if not valid_jobs and not used_llm_exp and exp_text:
-        llm_exp = extract_experience_section(exp_text)
+    # If no valid jobs were found (e.g. section detector missed heading or rules failed),
+    # run LLM experience extraction on full raw document text as a complete safety net
+    if not valid_jobs:
+        llm_exp = extract_experience_section(resume_doc.raw_text)
         if not llm_exp.get("error"):
             raw_jobs2 = llm_exp.get("jobs", [])
             _patch_orphan_dates(raw_jobs2)

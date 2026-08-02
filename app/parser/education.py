@@ -19,21 +19,21 @@ import re
 
 _PATTERNS: list[tuple[str, list[str]]] = [
     ("Doctorate", [
-        r"\bph\.?d\b", r"\bdoctorate\b", r"\bdoctor of\b",
-        r"\bd\.sc\b", r"\bd\.litt\b", r"\bedd\b", r"\bd\.phil\b",
+        r"\bph\s*\.?\s*d\b", r"\bdoctorate\b", r"\bdoctor of\b",
+        r"\bd\s*\.?\s*sc\b", r"\bd\s*\.?\s*litt\b", r"\bedd\b", r"\bd\s*\.?\s*phil\b",
     ]),
     ("Master", [
-        r"\bm\.?tech\b", r"\bm\.?e\b", r"\bm\.?sc\b", r"\bm\.?s\b",
-        r"\bmba\b", r"\bm\.?a\b", r"\bm\.?com\b", r"\bm\.?ca\b",
+        r"\bm\s*\.?\s*tech\b", r"\bm\s*\.?\s*e\b", r"\bm\s*\.?\s*sc\b", r"\bm\s*\.?\s*s\b",
+        r"\bmba\b", r"\bm\s*\.?\s*a\b", r"\bm\s*\.?\s*com\b", r"\bm\s*\.?\s*ca\b",
         r"\bmaster\b", r"\bpost.?graduate\b", r"\bpg\b",
-        r"\bm\.?eng\b", r"\bpgd\b", r"\bpgdm\b", r"\bm\.?phil\b",
+        r"\bm\s*\.?\s*eng\b", r"\bpgd\b", r"\bpgdm\b", r"\bm\s*\.?\s*phil\b",
         r"\bmaster of\b",
     ]),
     ("Bachelor", [
-        r"\bb\.?tech\b", r"\bb\.?e\b", r"\bb\.?sc\b", r"\bb\.?a\b",
-        r"\bbba\b", r"\bb\.?com\b", r"\bb\.?ca\b", r"\bb\.?arch\b",
-        r"\bb\.?pharm\b", r"\bbachelor\b", r"\bundergraduate\b",
-        r"\bb\.?eng\b", r"\bbs\b", r"\bba\b", r"\bbachelor of\b",
+        r"\bb\s*\.?\s*tech\b", r"\bb\s*\.?\s*e\b", r"\bb\s*\.?\s*sc\b", r"\bb\s*\.?\s*a\b",
+        r"\bbba\b", r"\bb\s*\.?\s*com\b", r"\bb\s*\.?\s*ca\b", r"\bb\s*\.?\s*arch\b",
+        r"\bb\s*\.?\s*pharm\b", r"\bbachelor\b", r"\bundergraduate\b",
+        r"\bb\s*\.?\s*eng\b", r"\bbs\b", r"\bba\b", r"\bbachelor of\b",
         r"\bbachelors?\b",
     ]),
     ("Diploma", [

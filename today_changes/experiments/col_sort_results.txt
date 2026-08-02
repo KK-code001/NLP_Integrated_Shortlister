@@ -1,0 +1,43 @@
+=== COLUMN-SORTED SECTION DETECTION ===
+
+SECTION [header]: 12 blocks
+  * 'Shourya Bansal'
+  * 'W E B D E V E L O P E R'
+  * '+91 9376666070'
+  * '◆'
+  * 'shouryabansal 02@ gmail . com'
+
+SECTION [certifications]: 0 blocks
+
+SECTION [education]: 7 blocks
+  * 'B . Tech in CS Engineering'
+  * 'CSE undergraduate passionate about building scalable , impactful tech'
+  * 'JK Lakshmipat University , Jaipur'
+  * '2024 – 2028'
+  * 'products that solve real - world problems . Experienced in transforming ideas'
+
+SECTION [skills]: 39 blocks
+  * 'technologies to drive meaningful digital transformation .'
+  * '▪ P R O G R A M M I N G & S C R I P T I N G'
+  * 'C , Python , JavaScript , Bash'
+  * '▪ W E B D E V E LO P M E N T'
+  * 'HTML , CSS , Markdown , JSON , React . js ,'
+
+SECTION [awards]: 50 blocks
+  * 'Vibe'
+  * 'AUG 2025 – PRESENT'
+  * 'State Level Open AI Hackathon Jan 2026'
+  * '◆'
+  * 'Rewires campus discovery with a verified , hyperlocal , privacy - first social layer that'
+
+SECTION [summary]: 0 blocks
+
+SECTION [experience]: 0 blocks
+
+SECTION [projects]: 0 blocks
+
+--- EXTRACTED EDUCATION TEXT ---
+'B . Tech in CS Engineering\nCSE undergraduate passionate about building scalable , impactful tech\nJK Lakshmipat University , Jaipur\n2024 – 2028\nproducts that solve real - world problems . Experienced in transforming ideas\ninto prototypes , refining them through feedback , and deploying production -\nready solutions . Dedicated to continuous learning and leveraging emerging'
+
+--- RULES EDUCATION ---
+{'education': [], 'confidence': 0.0}

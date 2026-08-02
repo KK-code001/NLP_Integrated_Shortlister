@@ -27,9 +27,17 @@ from app.parser.layout import ResumeDocument, TextBlock
 SECTION_ALIASES: dict[str, list[str]] = {
     "experience": [
         "experience",
-        # "EXPERIENCE",
         "professional experience",
         "work experience",
+        "internships",
+        "internship",
+        "internship experience",
+        "internships & experience",
+        "internships and experience",
+        "work experience & internships",
+        "work experience / internships",
+        "internships / work experience",
+        "practical experience",
         "employment",
         "employment history",
         "career history",
@@ -184,8 +192,17 @@ _BULLET_PREFIX_RE = re.compile(
 
 
 def _clean_for_match(text: str) -> str:
-    """Remove leading bullets/numbering and lowercase."""
-    return _BULLET_PREFIX_RE.sub("", text).strip().lower()
+    """Remove leading bullets/numbering, lowercase, and normalize character spacing."""
+    cleaned = _BULLET_PREFIX_RE.sub("", text).strip().lower()
+    if cleaned in _ALIAS_TO_SECTION:
+        return cleaned
+    
+    # Handle character-spaced PDF text headers like "E D U C AT I O N" or "P R O F I L E"
+    collapsed = re.sub(r"\s+", "", cleaned)
+    if collapsed in _ALIAS_TO_SECTION:
+        return collapsed
+
+    return cleaned
 
 
 def _is_heading(block: TextBlock) -> bool:
