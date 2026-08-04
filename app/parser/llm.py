@@ -190,9 +190,24 @@ def _extract_name_by_font_size(blocks: list) -> str:
     candidates = []
     for i, block in enumerate(page1_blocks):
         text = block.text.strip()
-        # Collapse character spacing: 'S h o u r y a' -> 'Shourya'
-        if re.search(r"\b[a-zA-Z]\s+[a-zA-Z]\b", text):
-            text = re.sub(r"\s+", "", text)
+
+        # Strip email, phone, and URLs from header text block before name parsing
+        # (Handles PDF blocks that combine candidate name with email/phone)
+        text = _EMAIL_RE.sub("", text)
+        text = _PHONE_RE.sub("", text)
+        text = _LINKEDIN_RE.sub("", text)
+        text = _GITHUB_RE.sub("", text)
+        text = re.sub(r"https?://\S+|www\.\S+", "", text).strip()
+
+        if not text:
+            continue
+
+        # Collapse single-letter character spacing: 'S h o u r y a' -> 'Shourya'
+        if re.search(r"(?<=\b[a-zA-Z])\s+(?=[a-zA-Z]\b)", text):
+            # Only collapse if tokens are predominantly single letters
+            tokens = text.split()
+            if len(tokens) >= 3 and sum(1 for t in tokens if len(t) == 1) / len(tokens) > 0.5:
+                text = re.sub(r"\s+", "", text)
 
         cleaned = re.sub(r"[^a-zA-Z\s]", "", text).strip()
         words = cleaned.split()
@@ -201,7 +216,7 @@ def _extract_name_by_font_size(blocks: list) -> str:
 
         if any(w.lower() in _NAME_SKIP_WORDS for w in words):
             continue
-        if re.search(r"\d", text) or "@" in text or "/" in text:
+        if re.search(r"\d", text) or "/" in text:
             continue
 
         # If we got a 2-5 word full name, return it immediately
@@ -211,11 +226,13 @@ def _extract_name_by_font_size(blocks: list) -> str:
         # If single-word first name, look for adjacent block with similar font size to form full name
         if len(words) == 1 and len(words[0]) >= 2:
             single_name = words[0].capitalize()
+            if single_name.lower() in _NAME_SKIP_WORDS:
+                continue
             # Look at remaining blocks for surname
             for next_b in page1_blocks[i+1:]:
                 next_text = next_b.text.strip()
-                if re.search(r"\b[a-zA-Z]\s+[a-zA-Z]\b", next_text):
-                    next_text = re.sub(r"\s+", "", next_text)
+                next_text = _EMAIL_RE.sub("", next_text)
+                next_text = _PHONE_RE.sub("", next_text)
                 next_cleaned = re.sub(r"[^a-zA-Z\s]", "", next_text).strip()
                 next_words = next_cleaned.split()
                 if 1 <= len(next_words) <= 3 and not any(nw.lower() in _NAME_SKIP_WORDS for nw in next_words):
