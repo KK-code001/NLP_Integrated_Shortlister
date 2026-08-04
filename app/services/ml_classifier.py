@@ -46,9 +46,35 @@ def evaluate_candidate_ml(feature_data: dict) -> dict:
     low_confidence = confidence < CONFIDENCE_THRESHOLD
     unverifiable_seniority = bool(row_features["unstated_experience_for_senior_role"])
 
-    needs_review = low_confidence or not sufficient_evidence or unverifiable_seniority
+    # Safety Guardrails: Domain and Severe Skill Mismatch
+    resume_dom = feature_data.get("resume_domain", "Unknown")
+    jd_dom = feature_data.get("jd_domain", "Unknown")
+    domain_mismatch = bool(
+        row_features.get("domain_match", 1.0) == 0.0 
+        and resume_dom != "Unknown" 
+        and jd_dom != "Unknown"
+    )
+    severe_skill_mismatch = bool(row_features.get("skill_match_score", 1.0) < 0.25)
 
-    if unverifiable_seniority:
+    needs_review = (
+        low_confidence 
+        or not sufficient_evidence 
+        or unverifiable_seniority 
+        or domain_mismatch 
+        or severe_skill_mismatch
+    )
+
+    # Business Rule Guardrail: If both domain and skill set are mismatched, candidate is No Match
+    if domain_mismatch and severe_skill_mismatch:
+        pred_class = "no match"
+
+    if domain_mismatch and severe_skill_mismatch:
+        review_reason = f"domain mismatch ({resume_dom} vs {jd_dom}) and severe skill gap (<25% match)"
+    elif domain_mismatch:
+        review_reason = f"domain mismatch ({resume_dom} candidate vs {jd_dom} role)"
+    elif severe_skill_mismatch:
+        review_reason = "severe skill mismatch (<25% skills matched)"
+    elif unverifiable_seniority:
         review_reason = "unstated candidate experience against a senior-level role"
     elif low_confidence:
         review_reason = "low model confidence"

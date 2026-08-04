@@ -52,10 +52,9 @@ class TestValidateJob(unittest.TestCase):
         self.assertEqual(len(warns), 1)
         self.assertIn("year", warns[0])
 
-    def test_empty_company_rejected(self):
+    def test_empty_company_handled_with_placeholder(self):
         cleaned, warns = validate_job(self._good_job(company=""))
-        self.assertEqual(cleaned, {})
-        self.assertTrue(any("company" in w for w in warns))
+        self.assertEqual(cleaned.get("company"), "Company Not Identified")
 
     def test_empty_designation_rejected(self):
         cleaned, warns = validate_job(self._good_job(designation=""))
